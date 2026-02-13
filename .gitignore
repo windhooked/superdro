@@ -7,6 +7,9 @@ firmware/test/test_protocol
 firmware/test/test_encoder
 tests/e2e/firmware_sim
 
+# Debug symbols
+*.dSYM/
+
 # Android
 android/.gradle/
 android/build/
