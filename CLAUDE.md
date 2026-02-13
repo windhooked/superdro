@@ -26,6 +26,21 @@ superdro/
 
 **Phase 1 — DRO**: Position display (X, Z, spindle RPM) on Android tablet. Implementation plan with 12 tasks is in `prd.md` under "Phase 1 Implementation Plan".
 
+### Implementation Status (Phase 1)
+
+- [x] Task 1: Monorepo project structure
+- [x] Task 2: PIO quadrature decoder (`pio/quadrature.pio`)
+- [x] Task 3: Encoder abstraction (`src/encoder.c/.h`)
+- [x] Task 4: Config system (`src/config.c/.h`)
+- [x] Task 5: USB serial protocol (`src/protocol.c/.h`)
+- [x] Task 6: Safety module (`src/safety.c/.h`)
+- [x] Task 7: Firmware main.c (dual-core wiring)
+- [x] Task 8: Android project setup with USB serial
+- [x] Task 9: MachineState model + DroViewModel
+- [x] Task 10: DRO display screen
+- [x] Task 11: Config screen
+- [ ] Task 12: Integration testing (requires hardware)
+
 ## Key Hardware Decisions
 
 - Spindle encoder: Optical, 1000+ PPR, quadrature on GP2/GP3, index on GP4
