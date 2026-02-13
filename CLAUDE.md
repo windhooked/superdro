@@ -1,0 +1,56 @@
+# SuperDRO — Lathe Controller
+
+## Project Overview
+
+Raspberry Pi Pico W-based lathe controller combining DRO, electronic leadscrew (ELS), and conversational turning. 10" Android tablet as UI. See `prd.md` for full spec.
+
+## Architecture
+
+- **Pico W (RP2040 + CYW43439)**: Hard real-time motion control & sensor IO (C/C++, Pico SDK + CYW43 driver, PIO assembly)
+- **Android tablet**: Display, job setup, parameter entry only (Kotlin, Jetpack Compose)
+- **Comms**: USB Serial (CDC ACM), 115200 baud, newline-delimited JSON
+
+## Project Structure
+
+```
+superdro/
+├── firmware/          # Pico W C/C++ firmware (CMake + Pico SDK)
+│   ├── src/           # C source files
+│   └── pio/           # PIO assembly programs
+├── android/           # Kotlin/Compose Android app (Gradle)
+├── docs/              # Wiring diagrams, BOM, protocol docs
+└── prd.md             # Full PRD with Phase 1 implementation plan
+```
+
+## Current Phase
+
+**Phase 1 — DRO**: Position display (X, Z, spindle RPM) on Android tablet. Implementation plan with 12 tasks is in `prd.md` under "Phase 1 Implementation Plan".
+
+## Key Hardware Decisions
+
+- Spindle encoder: Optical, 1000+ PPR, quadrature on GP2/GP3, index on GP4
+- X-axis: Glass scale or magnetic encoder (quadrature on GP5/GP6)
+- Z drive: CL57T closed-loop stepper, step/dir on GP8/GP9
+- E-stop: GP14 (active low, HW pull-up)
+- Physical buttons: GP15 (engage), GP16 (feed hold), GP17 (cycle start)
+
+## Firmware Conventions
+
+- Dual-core: Core 0 = real-time control loop (~20µs), Core 1 = USB comms + housekeeping
+- PIO 0: encoder/scale decode, PIO 1: stepper pulse generation
+- Config stored in Pico W flash (wear-leveled), runtime-overridable via serial
+- JSON protocol for all Pico W ↔ Android communication
+- Onboard LED controlled via CYW43 driver (WL_GPIO0), not GP25
+- Safety: E-stop is hardware path (independent of firmware), watchdog on Core 0
+
+## Android Conventions
+
+- Min SDK API 26+, landscape orientation locked
+- USB serial via `usb-serial-for-android` library
+- Jetpack Compose UI, MVVM with ViewModels + StateFlow
+- Dark background, high-contrast digits for workshop visibility
+
+## Build
+
+- Firmware: CMake with Pico SDK, target `pico_w` (`arm-none-eabi-gcc`)
+- Android: Gradle with Kotlin/Compose
