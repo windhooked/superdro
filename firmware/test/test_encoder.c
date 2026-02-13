@@ -193,6 +193,67 @@ TEST(test_x_axis_negative) {
     ASSERT_FLOAT_EQ(pos.position_mm, -2.5f, 0.001f);
 }
 
+TEST(test_z_axis_position) {
+    reset_mocks();
+    config_load();
+    encoder_init();
+
+    // Z scale resolution = 0.005mm per count (same default as X)
+    // 2000 counts = 10.0mm
+    s_counts[2] = 2000;
+    encoder_update();
+
+    axis_position_t pos = z_axis_read();
+    assert(pos.raw_count == 2000);
+    ASSERT_FLOAT_EQ(pos.position_mm, 10.0f, 0.001f);
+}
+
+TEST(test_z_axis_zero) {
+    reset_mocks();
+    config_load();
+    encoder_init();
+
+    s_counts[2] = 3000;
+    encoder_update();
+
+    z_axis_zero();
+
+    axis_position_t pos = z_axis_read();
+    ASSERT_FLOAT_EQ(pos.position_mm, 0.0f, 0.001f);
+
+    // Move further — should be relative to zero point
+    s_counts[2] = 3200;
+    encoder_update();
+    pos = z_axis_read();
+    ASSERT_FLOAT_EQ(pos.position_mm, 1.0f, 0.001f); // 200 * 0.005
+}
+
+TEST(test_z_axis_preset) {
+    reset_mocks();
+    config_load();
+    encoder_init();
+
+    s_counts[2] = 1000;
+    encoder_update();
+
+    z_axis_preset(-50.0f); // Set current position to -50.0mm
+
+    axis_position_t pos = z_axis_read();
+    ASSERT_FLOAT_EQ(pos.position_mm, -50.0f, 0.001f);
+}
+
+TEST(test_z_axis_negative) {
+    reset_mocks();
+    config_load();
+    encoder_init();
+
+    s_counts[2] = -1000;
+    encoder_update();
+
+    axis_position_t pos = z_axis_read();
+    ASSERT_FLOAT_EQ(pos.position_mm, -5.0f, 0.001f);
+}
+
 int main(void) {
     printf("Encoder tests:\n");
     RUN(test_init_no_crash);
@@ -206,6 +267,10 @@ int main(void) {
     RUN(test_x_axis_zero);
     RUN(test_x_axis_preset);
     RUN(test_x_axis_negative);
+    RUN(test_z_axis_position);
+    RUN(test_z_axis_zero);
+    RUN(test_z_axis_preset);
+    RUN(test_z_axis_negative);
     printf("All encoder tests passed!\n\n");
     return 0;
 }

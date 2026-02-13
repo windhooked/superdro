@@ -27,11 +27,13 @@
 #define PIN_FEED_HOLD       16
 #define PIN_CYCLE_START     17
 
+// Z-axis scale (PIO 0, SM 2)
+#define PIN_Z_SCALE_A       20
+#define PIN_Z_SCALE_B       21
+
 // Reserved
 #define PIN_JOG_FWD         18
 #define PIN_JOG_REV         19
-#define PIN_MPG_A           20
-#define PIN_MPG_B           21
 #define PIN_FEED_OVERRIDE   22
 
 // ADC (reserved)

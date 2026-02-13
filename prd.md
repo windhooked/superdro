@@ -15,6 +15,7 @@ A Raspberry Pi Pico W-based lathe controller for a 12"+ workshop lathe with a 10
 | Axes | Z + X + Spindle. X is DRO now, stepper-ready for future |
 | Spindle encoder | Optical, 1000+ PPR |
 | Z drive | Closed-loop stepper (CL57T), belt-driven to existing 6mm pitch leadscrew |
+| Z DRO | Glass scale or magnetic encoder (quadrature) — independent position feedback |
 | X drive | DRO only — supports both glass scale (TTL) and magnetic encoder |
 | Display | 10" Android tablet |
 | Physical controls | Minimal (E-stop, engage, feed hold, cycle start). Expandable later |
@@ -37,7 +38,8 @@ typedef struct {
     uint32_t spindle_counts_per_rev; // 4000 (ppr × quadrature)
     uint16_t spindle_max_rpm;       // 3500
 
-    // Z axis
+    // Z axis — scale (DRO) + stepper (ELS)
+    float    z_scale_resolution_mm; // 0.005 (5µm for typical glass scale)
     float    z_leadscrew_pitch_mm;  // 6.0
     uint16_t z_steps_per_rev;       // 1000 (CL57T configurable: 200-10000)
     float    z_belt_ratio;          // 1.0 (motor:leadscrew, e.g. 2.0 = 2:1 reduction)
@@ -149,8 +151,8 @@ GP16 - Feed hold button        (interrupt, active low)
 GP17 - Cycle start button      (interrupt, active low)
 GP18 - (reserved: jog fwd)
 GP19 - (reserved: jog rev)
-GP20 - (reserved: MPG A)
-GP21 - (reserved: MPG B)
+GP20 - Z Scale A / CLK         (PIO 0, SM 2)
+GP21 - Z Scale B / DATA        (PIO 0, SM 2)
 GP22 - (reserved: feed override)
 
 GP25 - (Pico W: wireless SPI CS — not available for user GPIO)
@@ -168,16 +170,23 @@ LED  - Onboard LED via CYW43 WL_GPIO0 (cyw43_arch_gpio_put)
 - GP29 → CYW43 wireless SPI clock (VSYS ADC3 time-shared with wireless)
 ```
 
-### X-Axis Scale Abstraction
+### Scale Abstraction (X and Z axes)
 
-Both scale types use GP5/GP6 via PIO 0 SM 1, selected by config:
+Both X and Z axes use glass scales or magnetic encoders for DRO position feedback. The Z axis additionally has a stepper for ELS/turning — the scale provides independent position verification.
+
+| Axis | GPIO Pins | PIO | Config Resolution Key |
+|---|---|---|---|
+| X scale | GP5/GP6 | PIO 0, SM 1 | `x_scale_resolution_mm` |
+| Z scale | GP20/GP21 | PIO 0, SM 2 | `z_scale_resolution_mm` |
+
+Both scale types output quadrature signals, so the same `quadrature.pio` program handles either:
 
 | Scale Type | Interface | PIO Program | Resolution |
 |---|---|---|---|
-| Glass scale (TTL) | Quadrature A/B on GP5/GP6 | `quadrature.pio` (same as spindle) | Typically 5µm |
-| Magnetic encoder | Quadrature A/B on GP5/GP6 | `quadrature.pio` (same as spindle) | Varies by strip pitch |
+| Glass scale (TTL) | Quadrature A/B | `quadrature.pio` (same as spindle) | Typically 5µm |
+| Magnetic encoder | Quadrature A/B | `quadrature.pio` (same as spindle) | Varies by strip pitch |
 
-Both output quadrature signals, so the same PIO program handles either. The `x_scale_resolution_mm` config value maps counts to mm. If a scale uses SPI/SSI instead, a separate PIO program can be loaded to SM 1 — the abstraction layer handles this:
+The resolution config value maps counts to mm. If a scale uses SPI/SSI instead, a separate PIO program can be loaded — the abstraction layer handles this:
 
 ```c
 // encoder.h
@@ -188,7 +197,10 @@ typedef struct {
 
 // Returns position regardless of underlying scale type
 axis_position_t x_axis_read(void);
+axis_position_t z_axis_read(void);
 ```
+
+**Z position sources**: In DRO mode (Phase 1), Z position comes from the scale. In ELS/threading mode (Phase 2+), the stepper drives Z but the scale provides closed-loop verification.
 
 ### PIO Allocation
 
@@ -196,6 +208,7 @@ axis_position_t x_axis_read(void);
 |---|---|---|
 | PIO 0, SM 0 | Spindle quadrature decode | 4x → 4000 counts/rev |
 | PIO 0, SM 1 | X-axis scale decode | Quadrature (TTL glass or magnetic) |
+| PIO 0, SM 2 | Z-axis scale decode | Quadrature (TTL glass or magnetic) |
 | PIO 1, SM 0 | Z step pulse generation | Frequency-controlled |
 | PIO 1, SM 1 | (reserved: X step pulses) | Future |
 
@@ -208,6 +221,7 @@ axis_position_t x_axis_read(void);
 | Raspberry Pi Pico W | RP2040 + CYW43439 WiFi/BT | $6 |
 | Spindle encoder | Omron E6B2-CWZ6C 1000PPR | $25-50 |
 | X-axis glass scale | 200-300mm, 5µm, TTL output | $30-60 |
+| Z-axis glass scale | 500-600mm, 5µm, TTL output | $40-80 |
 | Z stepper motor | NEMA 23, 2-3 Nm | $25-40 |
 | Z stepper driver | CL57T closed-loop | $40-60 |
 | Timing belt + pulleys | GT2/HTD 3M, 1:1 ratio for 6mm leadscrew | $15-25 |
@@ -227,8 +241,8 @@ axis_position_t x_axis_read(void);
 **Goal**: Position display on Android for X, Z, spindle RPM.
 
 **Pico firmware**:
-- PIO quadrature decode: spindle (SM 0), X scale (SM 1)
-- Z position from step counter (once stepper installed) or temporary encoder
+- PIO quadrature decode: spindle (SM 0), X scale (SM 1), Z scale (SM 2)
+- Z position from dedicated scale (independent of stepper)
 - JSON status at ~50 Hz: `{"pos":{"x":...,"z":...},"rpm":...,"state":"idle"}`
 - RPM from spindle encoder delta over 50ms window
 - Config struct loaded from flash, updatable via serial
@@ -563,18 +577,20 @@ lathe-controller/
 
 #### Task 2 — PIO quadrature decoder program
 - Write `pio/quadrature.pio` for 4x quadrature decoding
-- Shared by spindle encoder (PIO 0 SM 0, GP2/GP3) and X-axis scale (PIO 0 SM 1, GP5/GP6)
+- Shared by spindle encoder (PIO 0 SM 0, GP2/GP3), X-axis scale (PIO 0 SM 1, GP5/GP6), and Z-axis scale (PIO 0 SM 2, GP20/GP21)
 - Decode A/B quadrature signals → 32-bit signed counter
 - Readable from C via PIO FIFO or direct SM register read
 - Must handle signal rates up to 233 kHz (spindle at 3500 RPM)
 - **Blocked by**: #1
 
 #### Task 3 — Encoder abstraction layer (`encoder.c/.h`)
-- Initialize PIO 0 SM 0 for spindle (GP2/GP3), SM 1 for X scale (GP5/GP6)
+- Initialize PIO 0 SM 0 for spindle (GP2/GP3), SM 1 for X scale (GP5/GP6), SM 2 for Z scale (GP20/GP21)
 - Spindle index pulse handling on GP4 (GPIO interrupt) for revolution counting
 - `axis_position_t` struct: `raw_count`, `position_mm`
 - `spindle_read()` → raw count
 - `x_axis_read()` → position in mm (using `x_scale_resolution_mm` from config)
+- `z_axis_read()` → position in mm (using `z_scale_resolution_mm` from config)
+- `z_axis_zero()` / `z_axis_preset(value_mm)` — same pattern as X
 - RPM calculation from spindle count delta over configurable window (~50ms)
 - Spindle direction detection
 - **Blocked by**: #2, #4
@@ -614,7 +630,7 @@ lathe-controller/
 - Core 0 real-time loop (~20µs period):
   - Read spindle encoder, calculate RPM
   - Read X-axis scale position
-  - Track Z position (step counter or placeholder for Phase 1)
+  - Read Z-axis scale position (via `z_axis_read()`)
   - Check safety (E-stop, soft limits)
 - Core 1 communications:
   - USB serial TX (status JSON at 50 Hz)

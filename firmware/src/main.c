@@ -45,9 +45,11 @@ int main(void) {
         encoder_update();
 
         axis_position_t x = x_axis_read();
+        axis_position_t z = z_axis_read();
         float rpm = spindle_read_rpm();
 
         g_status.x_pos_mm = x.position_mm;
+        g_status.z_pos_mm = z.position_mm;
         g_status.rpm = rpm;
         g_status.estop = safety_estop_active();
         g_status.state = safety_alarm_active() ? STATE_ALARM : STATE_IDLE;

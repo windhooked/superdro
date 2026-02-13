@@ -28,6 +28,7 @@ static void config_set_defaults(void) {
         .spindle_counts_per_rev = 4000,
         .spindle_max_rpm        = 3500,
 
+        .z_scale_resolution_mm  = 0.005f,
         .z_leadscrew_pitch_mm   = 6.0f,
         .z_steps_per_rev        = 1000,
         .z_belt_ratio           = 1.0f,
@@ -132,6 +133,7 @@ static const config_kv_entry_t kv_table[] = {
     KV_ENTRY(spindle_counts_per_rev, KV_U32),
     KV_ENTRY(spindle_max_rpm,        KV_U16),
 
+    KV_ENTRY(z_scale_resolution_mm,  KV_FLOAT),
     KV_ENTRY(z_leadscrew_pitch_mm,   KV_FLOAT),
     KV_ENTRY(z_steps_per_rev,        KV_U16),
     KV_ENTRY(z_belt_ratio,           KV_FLOAT),

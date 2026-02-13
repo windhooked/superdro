@@ -32,6 +32,7 @@ TEST(test_defaults_loaded) {
     ASSERT_FLOAT_EQ(cfg->z_leadscrew_pitch_mm, 6.0f, 0.001f);
     assert(cfg->z_steps_per_rev == 1000);
     ASSERT_FLOAT_EQ(cfg->z_belt_ratio, 1.0f, 0.001f);
+    ASSERT_FLOAT_EQ(cfg->z_scale_resolution_mm, 0.005f, 0.0001f);
     ASSERT_FLOAT_EQ(cfg->x_scale_resolution_mm, 0.005f, 0.0001f);
     assert(cfg->x_is_diameter == true);
     assert(cfg->thread_retract_mode == 0);
@@ -134,7 +135,7 @@ TEST(test_config_list_callback) {
     int count = 0;
     config_list(list_counter_cb, &count);
     assert(count > 0);
-    assert(count >= 20); // We have 24 config entries
+    assert(count >= 21); // We have 25 config entries
 }
 
 TEST(test_belt_ratio_affects_steps_per_mm) {

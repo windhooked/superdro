@@ -8,10 +8,13 @@
 static PIO pio = pio0;
 static uint sm_spindle = 0;
 static uint sm_x_axis  = 1;
+static uint sm_z_axis  = 2;
 
 static volatile int32_t spindle_count;
 static volatile int32_t x_count;
 static volatile int32_t x_offset;      // for zero/preset
+static volatile int32_t z_count;
+static volatile int32_t z_offset;      // for zero/preset
 
 // RPM calculation
 #define RPM_WINDOW_US 50000  // 50ms
@@ -37,6 +40,9 @@ void encoder_init(void) {
     // SM 1: X-axis scale on GP5/GP6
     quadrature_program_init(pio, sm_x_axis, offset, PIN_X_SCALE_A);
 
+    // SM 2: Z-axis scale on GP20/GP21
+    quadrature_program_init(pio, sm_z_axis, offset, PIN_Z_SCALE_A);
+
     // Spindle index pulse (GP4) — GPIO interrupt
     gpio_init(PIN_SPINDLE_INDEX);
     gpio_set_dir(PIN_SPINDLE_INDEX, GPIO_IN);
@@ -49,12 +55,14 @@ void encoder_init(void) {
     rpm_current = 0.0f;
     spindle_dir = 0;
     x_offset = 0;
+    z_offset = 0;
 }
 
 void encoder_update(void) {
     // Read raw counts from PIO FIFOs (non-blocking)
     spindle_count = quadrature_get_count(pio, sm_spindle);
     x_count = quadrature_get_count(pio, sm_x_axis);
+    z_count = quadrature_get_count(pio, sm_z_axis);
 
     // RPM calculation over window
     uint64_t now = time_us_64();
@@ -121,5 +129,27 @@ void x_axis_preset(float value_mm) {
     if (cfg->x_scale_resolution_mm > 0.0f) {
         int32_t target_counts = (int32_t)(value_mm / cfg->x_scale_resolution_mm);
         x_offset = x_count - target_counts;
+    }
+}
+
+axis_position_t z_axis_read(void) {
+    const machine_config_t *cfg = config_get_all();
+    int32_t adjusted = z_count - z_offset;
+    float mm = (float)adjusted * cfg->z_scale_resolution_mm;
+    return (axis_position_t){
+        .raw_count = adjusted,
+        .position_mm = mm,
+    };
+}
+
+void z_axis_zero(void) {
+    z_offset = z_count;
+}
+
+void z_axis_preset(float value_mm) {
+    const machine_config_t *cfg = config_get_all();
+    if (cfg->z_scale_resolution_mm > 0.0f) {
+        int32_t target_counts = (int32_t)(value_mm / cfg->z_scale_resolution_mm);
+        z_offset = z_count - target_counts;
     }
 }

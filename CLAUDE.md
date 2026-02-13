@@ -45,14 +45,14 @@ superdro/
 
 - Spindle encoder: Optical, 1000+ PPR, quadrature on GP2/GP3, index on GP4
 - X-axis: Glass scale or magnetic encoder (quadrature on GP5/GP6)
-- Z drive: CL57T closed-loop stepper, step/dir on GP8/GP9
+- Z-axis: Glass scale or magnetic encoder (quadrature on GP20/GP21) + CL57T closed-loop stepper (step/dir on GP8/GP9)
 - E-stop: GP14 (active low, HW pull-up)
 - Physical buttons: GP15 (engage), GP16 (feed hold), GP17 (cycle start)
 
 ## Firmware Conventions
 
 - Dual-core: Core 0 = real-time control loop (~20µs), Core 1 = USB comms + housekeeping
-- PIO 0: encoder/scale decode, PIO 1: stepper pulse generation
+- PIO 0: encoder/scale decode (SM 0: spindle, SM 1: X scale, SM 2: Z scale), PIO 1: stepper pulse generation
 - Config stored in Pico W flash (wear-leveled), runtime-overridable via serial
 - JSON protocol for all Pico W ↔ Android communication
 - Onboard LED controlled via CYW43 driver (WL_GPIO0), not GP25

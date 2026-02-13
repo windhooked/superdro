@@ -12,7 +12,8 @@ typedef struct {
     uint32_t spindle_counts_per_rev;
     uint16_t spindle_max_rpm;
 
-    // Z axis
+    // Z axis — scale (DRO) + stepper (ELS)
+    float    z_scale_resolution_mm;
     float    z_leadscrew_pitch_mm;
     uint16_t z_steps_per_rev;
     float    z_belt_ratio;

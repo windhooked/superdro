@@ -92,7 +92,7 @@ static void handle_command(const char *json) {
                 x_axis_zero();
                 protocol_send_ack("zero", true, NULL);
             } else if (strcmp(axis, "z") == 0) {
-                // Z zero — placeholder for Phase 1
+                z_axis_zero();
                 protocol_send_ack("zero", true, NULL);
             } else {
                 protocol_send_ack("zero", false, "unknown axis");
@@ -105,6 +105,9 @@ static void handle_command(const char *json) {
             json_get_float(json, "value", &value)) {
             if (strcmp(axis, "x") == 0) {
                 x_axis_preset(value);
+                protocol_send_ack("preset", true, NULL);
+            } else if (strcmp(axis, "z") == 0) {
+                z_axis_preset(value);
                 protocol_send_ack("preset", true, NULL);
             } else {
                 protocol_send_ack("preset", false, "unsupported axis");
@@ -165,7 +168,7 @@ static void handle_command(const char *json) {
         bool first = true;
         const char *keys[] = {
             "spindle_ppr", "spindle_max_rpm",
-            "z_leadscrew_pitch_mm", "z_steps_per_rev", "z_belt_ratio", "z_steps_per_mm",
+            "z_scale_resolution_mm", "z_leadscrew_pitch_mm", "z_steps_per_rev", "z_belt_ratio", "z_steps_per_mm",
             "x_scale_resolution_mm", "x_is_diameter",
             NULL
         };
