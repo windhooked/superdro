@@ -69,3 +69,12 @@ superdro/
 
 - Firmware: CMake with Pico SDK, target `pico_w` (`arm-none-eabi-gcc`)
 - Android: Gradle with Kotlin/Compose
+
+## Testing
+
+- **Firmware unit tests**: `cd firmware/test && make test` (host-compiled with mocked Pico SDK)
+- **Android unit tests**: `cd android && ./gradlew test` (JUnit for Protocol + model logic)
+- **E2E tests**: `cd tests/e2e && make test` (simulated serial via pipes + Python validator)
+- **Integration tests**: `docs/integration-test-checklist.md` (requires hardware)
+- **CI**: GitHub Actions (`.github/workflows/ci.yml`) — firmware tests, cross-compile, Android tests + APK build
+- **Docker**: `Dockerfile.firmware` and `Dockerfile.android` for reproducible builds

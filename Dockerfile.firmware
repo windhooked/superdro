@@ -1,0 +1,32 @@
+FROM ubuntu:22.04
+
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    cmake \
+    gcc-arm-none-eabi \
+    libnewlib-arm-none-eabi \
+    git \
+    python3 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Pico SDK
+ENV PICO_SDK_PATH=/opt/pico-sdk
+RUN git clone --depth 1 https://github.com/raspberrypi/pico-sdk.git ${PICO_SDK_PATH} \
+    && cd ${PICO_SDK_PATH} \
+    && git submodule update --init
+
+WORKDIR /workspace
+COPY firmware/ firmware/
+COPY tests/ tests/
+
+# Run host-compiled unit tests
+RUN cd firmware/test && make test
+
+# Run E2E tests
+RUN cd tests/e2e && make test
+
+# Build firmware for Pico W (cross-compile)
+RUN mkdir -p firmware/build \
+    && cd firmware/build \
+    && cmake .. -DPICO_BOARD=pico_w \
+    && make -j$(nproc)

@@ -1,0 +1,104 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  firmware-tests:
+    name: Firmware Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run firmware unit tests
+        run: |
+          cd firmware/test
+          make test
+
+      - name: Run E2E tests
+        run: |
+          cd tests/e2e
+          make test
+
+  firmware-build:
+    name: Firmware Cross-Compile (Pico W)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install ARM toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake gcc-arm-none-eabi libnewlib-arm-none-eabi
+
+      - name: Clone Pico SDK
+        run: |
+          git clone --depth 1 https://github.com/raspberrypi/pico-sdk.git /tmp/pico-sdk
+          cd /tmp/pico-sdk && git submodule update --init
+
+      - name: Build firmware
+        env:
+          PICO_SDK_PATH: /tmp/pico-sdk
+        run: |
+          mkdir -p firmware/build
+          cd firmware/build
+          cmake .. -DPICO_BOARD=pico_w
+          make -j$(nproc)
+
+      - name: Upload firmware artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: superdro-firmware
+          path: firmware/build/superdro.uf2
+
+  android-tests:
+    name: Android Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Run unit tests
+        run: |
+          cd android
+          chmod +x gradlew 2>/dev/null || true
+          ./gradlew test --no-daemon --stacktrace
+
+  android-build:
+    name: Android APK Build
+    runs-on: ubuntu-latest
+    needs: android-tests
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Build debug APK
+        run: |
+          cd android
+          chmod +x gradlew 2>/dev/null || true
+          ./gradlew assembleDebug --no-daemon
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: superdro-android
+          path: android/app/build/outputs/apk/debug/*.apk

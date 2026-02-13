@@ -1,6 +1,12 @@
 # Firmware build
 firmware/build/
 
+# Test binaries
+firmware/test/test_config
+firmware/test/test_protocol
+firmware/test/test_encoder
+tests/e2e/firmware_sim
+
 # Android
 android/.gradle/
 android/build/

@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <inttypes.h>
 #include "pico/stdlib.h"
 #include "hardware/flash.h"
 #include "hardware/sync.h"
@@ -169,7 +170,7 @@ bool config_get(const char *key, char *value_out, size_t value_len) {
             switch (kv_table[i].type) {
                 case KV_U8:    snprintf(value_out, value_len, "%u", *(uint8_t *)p); break;
                 case KV_U16:   snprintf(value_out, value_len, "%u", *(uint16_t *)p); break;
-                case KV_U32:   snprintf(value_out, value_len, "%lu", *(uint32_t *)p); break;
+                case KV_U32:   snprintf(value_out, value_len, "%" PRIu32, *(uint32_t *)p); break;
                 case KV_FLOAT: snprintf(value_out, value_len, "%.4f", *(float *)p); break;
                 case KV_BOOL:  snprintf(value_out, value_len, "%s", *(bool *)p ? "true" : "false"); break;
             }
