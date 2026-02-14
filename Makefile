@@ -1,12 +1,41 @@
 .PHONY: help test build clean \
+       deps deps-firmware deps-webapp deps-pico-sdk \
        firmware-test firmware-test-e2e firmware-build firmware-clean \
        android-test android-build android-clean \
        webapp-build webapp-run webapp-run-sim webapp-clean \
        docker-firmware docker-android
 
+PICO_SDK_DIR ?= $(HOME)/pico-sdk
+
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | sort | \
 		awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}'
+
+# ===== Dependencies =====
+
+deps: deps-firmware deps-webapp ## Install all development dependencies
+
+deps-firmware: ## Install firmware toolchain (macOS: brew, Linux: apt)
+ifeq ($(shell uname),Darwin)
+	brew install cmake arm-none-eabi-gcc
+else
+	sudo apt-get update && sudo apt-get install -y \
+		build-essential cmake gcc-arm-none-eabi libnewlib-arm-none-eabi python3
+endif
+
+deps-webapp: ## Install webapp dependencies (Go modules)
+	cd webapp && go mod download
+
+deps-pico-sdk: ## Clone Pico SDK to ~/pico-sdk
+	@if [ -d "$(PICO_SDK_DIR)" ]; then \
+		echo "Pico SDK already exists at $(PICO_SDK_DIR), pulling latest..."; \
+		cd "$(PICO_SDK_DIR)" && git pull && git submodule update --init; \
+	else \
+		git clone https://github.com/raspberrypi/pico-sdk.git "$(PICO_SDK_DIR)" --recurse-submodules; \
+	fi
+	@echo ""
+	@echo "Add to your shell profile:"
+	@echo "  export PICO_SDK_PATH=$(PICO_SDK_DIR)"
 
 # ===== Combined =====
 
