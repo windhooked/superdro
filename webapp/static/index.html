@@ -7,37 +7,33 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!-- Top bar -->
-    <header id="top-bar">
+    <!-- Title bar -->
+    <header id="title-bar">
+        <span id="brand">SuperDRO</span>
         <div id="connection-status">
             <span id="status-dot" class="dot dot-red"></span>
             <span id="status-text">Disconnected</span>
         </div>
-        <nav id="tabs">
-            <button class="tab-btn active" data-tab="dro" onclick="switchTab('dro')">DRO</button>
-            <button class="tab-btn" data-tab="config" onclick="switchTab('config')">Config</button>
-        </nav>
-        <div id="toggles">
-            <button id="unit-toggle" class="toggle-btn" onclick="toggleUnit()">mm</button>
-            <button id="xmode-toggle" class="toggle-btn" onclick="toggleXMode()">DIA</button>
-            <button id="panel-toggle" class="toggle-btn" onclick="toggleSidePanel()">&#9776;</button>
-        </div>
     </header>
 
-    <!-- DRO Tab -->
-    <main id="tab-dro" class="tab-content active">
-        <div class="dro-layout">
-            <!-- Main readout area -->
-            <div class="dro-main">
-                <!-- RPM bar -->
-                <div class="rpm-bar">
-                    <span class="rpm-label">RPM</span>
-                    <span class="rpm-value" id="rpm-value">0</span>
-                    <span class="state-badge" id="state-indicator">IDLE</span>
-                </div>
+    <!-- Main content: toolbar + workspace + status bar -->
+    <div id="main-content">
 
+        <!-- Left toolbar -->
+        <nav id="toolbar-left">
+            <button class="tb-btn active" data-tab="dro" onclick="switchTab('dro')" title="DRO">DRO</button>
+            <button class="tb-btn" data-tab="config" onclick="switchTab('config')" title="Configuration">CFG</button>
+            <hr class="tb-sep">
+            <button class="tb-btn" onclick="zeroAll()" title="Zero All Axes">0&rarr;</button>
+            <button class="tb-btn" id="unit-toggle" onclick="toggleUnit()" title="Toggle mm/in">mm</button>
+            <button class="tb-btn" id="xmode-toggle" onclick="toggleXMode()" title="Toggle Diameter/Radius">DIA</button>
+        </nav>
+
+        <!-- DRO Tab — Center workspace -->
+        <main id="tab-dro" class="tab-content active">
+            <div class="workspace">
                 <!-- X Axis row -->
-                <div class="axis-row">
+                <div class="axis-row" data-axis="x">
                     <div class="axis-label-group">
                         <span class="axis-tag">X</span>
                         <span class="axis-mode" id="x-sublabel">DIA</span>
@@ -45,50 +41,65 @@
                     <div class="axis-readout" id="x-value">+0.000</div>
                     <span class="axis-unit" id="x-unit">mm</span>
                     <div class="axis-buttons">
-                        <button class="axis-btn" onclick="zeroAxis('x')">ZERO</button>
-                        <button class="axis-btn" onclick="showPreset('x')">SET</button>
+                        <button class="btn" onclick="zeroAxis('x')">ZERO</button>
+                        <button class="btn" onclick="showPreset('x')">SET</button>
                     </div>
                 </div>
 
                 <!-- Z Axis row -->
-                <div class="axis-row">
+                <div class="axis-row" data-axis="z">
                     <div class="axis-label-group">
                         <span class="axis-tag">Z</span>
                     </div>
                     <div class="axis-readout" id="z-value">+0.000</div>
                     <span class="axis-unit" id="z-unit">mm</span>
                     <div class="axis-buttons">
-                        <button class="axis-btn" onclick="zeroAxis('z')">ZERO</button>
-                        <button class="axis-btn" onclick="showPreset('z')">SET</button>
+                        <button class="btn" onclick="zeroAxis('z')">ZERO</button>
+                        <button class="btn" onclick="showPreset('z')">SET</button>
                     </div>
                 </div>
             </div>
+        </main>
 
-            <!-- Side panel (saved coordinates) -->
-            <aside id="side-panel" class="side-panel collapsed">
-                <div class="side-panel-header">
-                    <h3>Saved Positions</h3>
-                    <button class="axis-btn btn-small" onclick="saveCurrentPosition()">+</button>
+        <!-- Config Tab -->
+        <main id="tab-config" class="tab-content">
+            <div id="config-header">
+                <h2>Machine Configuration</h2>
+                <div id="config-actions">
+                    <button class="btn" onclick="loadConfig()">LOAD</button>
+                    <button class="btn" onclick="saveConfig()">SAVE</button>
+                </div>
+            </div>
+            <div id="config-categories"></div>
+        </main>
+
+        <!-- Right status bar -->
+        <aside id="status-bar">
+            <!-- RPM section -->
+            <div class="sb-section">
+                <div class="sb-label">RPM</div>
+                <div class="sb-rpm" id="rpm-value">0</div>
+            </div>
+            <hr class="sb-sep">
+            <!-- State section -->
+            <div class="sb-section">
+                <div class="sb-label">STATE</div>
+                <div class="state-badge" id="state-indicator">IDLE</div>
+            </div>
+            <hr class="sb-sep">
+            <!-- Saved positions section -->
+            <div class="sb-section sb-positions">
+                <div class="sb-positions-header">
+                    <div class="sb-label">POSITIONS</div>
+                    <button class="btn btn-small" onclick="saveCurrentPosition()">+</button>
                 </div>
                 <div id="saved-positions" class="saved-list"></div>
-                <div class="side-panel-footer">
-                    <button class="axis-btn btn-small btn-dim" onclick="clearAllPositions()">CLEAR ALL</button>
+                <div class="sb-positions-footer">
+                    <button class="btn btn-small btn-dim" onclick="clearAllPositions()">CLEAR</button>
                 </div>
-            </aside>
-        </div>
-    </main>
-
-    <!-- Config Tab -->
-    <main id="tab-config" class="tab-content">
-        <div id="config-header">
-            <h2>Machine Configuration</h2>
-            <div id="config-actions">
-                <button class="axis-btn" onclick="loadConfig()">LOAD</button>
-                <button class="axis-btn" onclick="saveConfig()">SAVE</button>
             </div>
-        </div>
-        <div id="config-categories"></div>
-    </main>
+        </aside>
+    </div>
 
     <!-- Alarm banner -->
     <div id="alarm-banner" class="hidden">ALARM</div>
@@ -100,8 +111,8 @@
             <input type="number" id="preset-input" step="any" placeholder="0.000"
                    onkeydown="if(event.key==='Enter')confirmPreset()">
             <div class="dialog-buttons">
-                <button class="axis-btn" onclick="cancelPreset()">Cancel</button>
-                <button class="axis-btn btn-green" onclick="confirmPreset()">SET</button>
+                <button class="btn" onclick="cancelPreset()">Cancel</button>
+                <button class="btn btn-accent" onclick="confirmPreset()">SET</button>
             </div>
         </div>
     </div>

@@ -1,23 +1,24 @@
-/* SuperDRO — TouchDRO-inspired dark workshop theme */
+/* SuperDRO — Heidenhain-inspired dark workshop theme */
 
 :root {
-    --bg:          #0A0A0A;
-    --card:        #141414;
-    --card-border: #2A2A2A;
-    --btn:         #1E1E1E;
-    --btn-hover:   #2A2A2A;
-    --btn-active:  #333333;
-    --dro-green:   #AAFF00;
-    --rpm-color:   #AAFF00;
-    --alarm:       #FF3333;
-    --dim:         #555555;
-    --dim-light:   #888888;
-    --text:        #CCCCCC;
+    --bg:          #1E2328;
+    --card:        #262B31;
+    --card-border: #3A3F46;
+    --toolbar-bg:  #1A1E23;
+    --status-bg:   #1A1E23;
+    --btn:         #2C3138;
+    --btn-hover:   #3A4048;
+    --btn-active:  #4A5058;
+    --accent:      #0078D7;
+    --accent-dim:  #005A9E;
+    --dro-value:   #FFFFFF;
+    --rpm-color:   #0078D7;
+    --alarm:       #E81123;
+    --dim:         #6B7280;
+    --dim-light:   #9CA3AF;
+    --text:        #D1D5DB;
     --text-bright: #FFFFFF;
-    --dialog-bg:   #1A1A1A;
-    --accent:      #AAFF00;
-    --panel-bg:    #111111;
-    --panel-width: 240px;
+    --dialog-bg:   #262B31;
 }
 
 * {
@@ -36,16 +37,24 @@ body {
     flex-direction: column;
 }
 
-/* ===== Top bar ===== */
-#top-bar {
+/* ===== Title bar ===== */
+#title-bar {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 6px 12px;
-    background: var(--card);
+    padding: 0 16px;
+    background: var(--toolbar-bg);
     border-bottom: 1px solid var(--card-border);
     flex-shrink: 0;
-    height: 40px;
+    height: 36px;
+}
+
+#brand {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 1px;
+    text-transform: uppercase;
 }
 
 #connection-status {
@@ -61,7 +70,7 @@ body {
     display: inline-block;
 }
 
-.dot-green  { background: var(--dro-green); box-shadow: 0 0 6px var(--dro-green); }
+.dot-green  { background: #00CC66; box-shadow: 0 0 6px #00CC66; }
 .dot-yellow { background: #FFAA00; box-shadow: 0 0 6px #FFAA00; }
 .dot-red    { background: var(--alarm); box-shadow: 0 0 6px var(--alarm); }
 .dot-gray   { background: var(--dim); }
@@ -71,54 +80,59 @@ body {
     color: var(--dim-light);
 }
 
-#tabs {
+/* ===== Main content (3-column) ===== */
+#main-content {
     display: flex;
-    gap: 2px;
+    flex: 1;
+    overflow: hidden;
 }
 
-.tab-btn {
-    background: var(--btn);
+/* ===== Left toolbar ===== */
+#toolbar-left {
+    width: 56px;
+    background: var(--toolbar-bg);
+    border-right: 1px solid var(--card-border);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 8px 0;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+.tb-btn {
+    width: 44px;
+    height: 36px;
+    background: transparent;
     color: var(--dim-light);
-    border: 1px solid var(--card-border);
-    padding: 4px 14px;
-    border-radius: 3px;
+    border: 1px solid transparent;
+    border-radius: 4px;
     cursor: pointer;
-    font-size: 12px;
-    font-weight: 600;
+    font-size: 11px;
+    font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-}
-
-.tab-btn.active {
-    color: var(--dro-green);
-    border-color: var(--dro-green);
-    background: #1a2a10;
-}
-
-.tab-btn:hover {
-    background: var(--btn-hover);
-}
-
-#toggles {
     display: flex;
-    gap: 4px;
+    align-items: center;
+    justify-content: center;
 }
 
-.toggle-btn {
-    background: var(--btn);
-    color: var(--text);
-    border: 1px solid var(--card-border);
-    padding: 4px 10px;
-    border-radius: 3px;
-    cursor: pointer;
-    font-size: 13px;
-    font-weight: 600;
-    min-width: 42px;
-    text-align: center;
-}
-
-.toggle-btn:hover {
+.tb-btn:hover {
     background: var(--btn-hover);
+    color: var(--text);
+}
+
+.tb-btn.active {
+    background: var(--accent);
+    color: var(--text-bright);
+    border-color: var(--accent);
+}
+
+.tb-sep {
+    width: 32px;
+    border: none;
+    border-top: 1px solid var(--card-border);
+    margin: 4px 0;
 }
 
 /* ===== Tab content ===== */
@@ -132,63 +146,12 @@ body {
     display: flex;
 }
 
-/* ===== DRO Layout (hybrid rows + side panel) ===== */
-.dro-layout {
-    display: flex;
-    flex: 1;
-    overflow: hidden;
-}
-
-.dro-main {
-    flex: 1;
+/* ===== Workspace (center) ===== */
+.workspace {
     display: flex;
     flex-direction: column;
+    flex: 1;
     min-width: 0;
-}
-
-/* ===== RPM Bar ===== */
-.rpm-bar {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    padding: 6px 16px;
-    background: var(--card);
-    border-bottom: 1px solid var(--card-border);
-    flex-shrink: 0;
-}
-
-.rpm-label {
-    font-size: 14px;
-    font-weight: 700;
-    color: var(--dim-light);
-    text-transform: uppercase;
-    letter-spacing: 1px;
-}
-
-.rpm-value {
-    font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', 'Menlo', 'Courier New', monospace;
-    font-size: 28px;
-    font-weight: 700;
-    color: var(--dro-green);
-    min-width: 100px;
-}
-
-.state-badge {
-    font-size: 11px;
-    font-weight: 700;
-    color: var(--dim);
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    padding: 2px 8px;
-    border-radius: 3px;
-    background: var(--btn);
-    border: 1px solid var(--card-border);
-}
-
-.state-badge.alarm-state {
-    color: var(--alarm);
-    border-color: var(--alarm);
-    background: #2a0a0a;
 }
 
 /* ===== Axis Rows ===== */
@@ -196,11 +159,16 @@ body {
     display: flex;
     align-items: center;
     flex: 1;
-    padding: 0 16px;
+    padding: 0 20px;
     background: var(--bg);
     border-bottom: 1px solid var(--card-border);
     gap: 16px;
     min-height: 0;
+    transition: background 0.2s ease;
+}
+
+.axis-row.active {
+    background: #222830;
 }
 
 .axis-label-group {
@@ -212,14 +180,14 @@ body {
 }
 
 .axis-tag {
-    font-size: 24px;
+    font-size: 28px;
     font-weight: 800;
-    color: var(--dro-green);
+    color: var(--accent);
     line-height: 1;
 }
 
 .axis-mode {
-    font-size: 11px;
+    font-size: 10px;
     color: var(--dim);
     font-weight: 600;
     text-transform: uppercase;
@@ -229,20 +197,25 @@ body {
 .axis-readout {
     flex: 1;
     font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', 'Menlo', 'Courier New', monospace;
-    font-size: clamp(40px, 8vw, 80px);
+    font-size: clamp(36px, 6vw, 64px);
     font-weight: 700;
-    color: var(--dro-green);
+    color: var(--dro-value);
     text-align: right;
     letter-spacing: -1px;
     white-space: nowrap;
     overflow: hidden;
     padding-right: 8px;
     line-height: 1;
-    text-shadow: 0 0 12px rgba(170, 255, 0, 0.15);
+    transition: font-size 0.2s ease;
+}
+
+/* Dynamic zoom: active axis gets larger readout */
+.axis-row.active .axis-readout {
+    font-size: clamp(50px, 10vw, 100px);
 }
 
 .axis-unit {
-    font-size: 14px;
+    font-size: 13px;
     color: var(--dim);
     font-weight: 600;
     min-width: 24px;
@@ -254,12 +227,13 @@ body {
     gap: 4px;
 }
 
-.axis-btn {
+/* ===== Buttons ===== */
+.btn {
     background: var(--btn);
     color: var(--text);
     border: 1px solid var(--card-border);
     padding: 6px 14px;
-    border-radius: 3px;
+    border-radius: 4px;
     cursor: pointer;
     font-size: 12px;
     font-weight: 700;
@@ -268,12 +242,12 @@ body {
     white-space: nowrap;
 }
 
-.axis-btn:hover {
+.btn:hover {
     background: var(--btn-hover);
     border-color: var(--dim);
 }
 
-.axis-btn:active {
+.btn:active {
     background: var(--btn-active);
 }
 
@@ -286,61 +260,104 @@ body {
     color: var(--dim);
 }
 
-.btn-green {
-    color: var(--dro-green);
-    border-color: #446600;
+.btn-accent {
+    color: var(--text-bright);
+    background: var(--accent);
+    border-color: var(--accent-dim);
 }
 
-.btn-green:hover {
-    background: #1a2a10;
-    border-color: var(--dro-green);
+.btn-accent:hover {
+    background: var(--accent-dim);
+    border-color: var(--accent);
 }
 
-/* ===== Side Panel (saved coordinates) ===== */
-.side-panel {
-    width: var(--panel-width);
-    background: var(--panel-bg);
+/* ===== Right status bar ===== */
+#status-bar {
+    width: 200px;
+    background: var(--status-bg);
     border-left: 1px solid var(--card-border);
     display: flex;
     flex-direction: column;
     flex-shrink: 0;
-    transition: width 0.2s ease, opacity 0.2s ease;
     overflow: hidden;
 }
 
-.side-panel.collapsed {
-    width: 0;
-    border-left: none;
+.sb-section {
+    padding: 12px;
 }
 
-.side-panel-header {
+.sb-sep {
+    border: none;
+    border-top: 1px solid var(--card-border);
+    margin: 0;
+}
+
+.sb-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--dim);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 6px;
+}
+
+.sb-rpm {
+    font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', 'Menlo', 'Courier New', monospace;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--accent);
+    line-height: 1;
+}
+
+.state-badge {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--dim-light);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    background: var(--btn);
+    border: 1px solid var(--card-border);
+    display: inline-block;
+}
+
+.state-badge.alarm-state {
+    color: var(--alarm);
+    border-color: var(--alarm);
+    background: #2D1A1E;
+}
+
+/* Saved positions in status bar */
+.sb-positions {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding-bottom: 0;
+}
+
+.sb-positions-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 8px 12px;
-    border-bottom: 1px solid var(--card-border);
-    flex-shrink: 0;
+    margin-bottom: 8px;
 }
 
-.side-panel-header h3 {
-    font-size: 12px;
-    color: var(--dim-light);
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+.sb-positions-header .sb-label {
+    margin-bottom: 0;
 }
 
 .saved-list {
     flex: 1;
     overflow-y: auto;
-    padding: 4px 0;
 }
 
 .saved-item {
     display: flex;
     flex-direction: column;
-    padding: 6px 12px;
-    border-bottom: 1px solid #1a1a1a;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--card-border);
     cursor: pointer;
     transition: background 0.1s;
 }
@@ -350,16 +367,18 @@ body {
 }
 
 .saved-item-label {
-    font-size: 11px;
+    font-size: 10px;
     color: var(--dim);
-    font-weight: 600;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
     margin-bottom: 2px;
 }
 
 .saved-item-coords {
     font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', monospace;
-    font-size: 12px;
-    color: var(--dro-green);
+    font-size: 11px;
+    color: var(--text);
 }
 
 .saved-item-actions {
@@ -381,8 +400,8 @@ body {
     color: var(--alarm);
 }
 
-.side-panel-footer {
-    padding: 8px 12px;
+.sb-positions-footer {
+    padding: 8px 0;
     border-top: 1px solid var(--card-border);
     flex-shrink: 0;
 }
@@ -393,7 +412,7 @@ body {
     bottom: 0;
     left: 0;
     right: 0;
-    background: rgba(255, 51, 51, 0.12);
+    background: rgba(232, 17, 35, 0.15);
     color: var(--alarm);
     text-align: center;
     padding: 10px;
@@ -401,7 +420,7 @@ body {
     font-weight: 800;
     letter-spacing: 4px;
     border-top: 2px solid var(--alarm);
-    text-shadow: 0 0 8px rgba(255, 51, 51, 0.4);
+    text-shadow: 0 0 8px rgba(232, 17, 35, 0.4);
 }
 
 .hidden {
@@ -440,9 +459,9 @@ body {
 
 .dialog input {
     background: var(--bg);
-    color: var(--dro-green);
+    color: var(--dro-value);
     border: 1px solid var(--card-border);
-    border-radius: 3px;
+    border-radius: 4px;
     padding: 10px 12px;
     font-size: 20px;
     font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', monospace;
@@ -450,8 +469,8 @@ body {
 }
 
 .dialog input:focus {
-    border-color: var(--dro-green);
-    box-shadow: 0 0 4px rgba(170, 255, 0, 0.2);
+    border-color: var(--accent);
+    box-shadow: 0 0 4px rgba(0, 120, 215, 0.3);
 }
 
 .dialog-buttons {
@@ -464,7 +483,7 @@ body {
 #tab-config {
     flex-direction: column;
     overflow-y: auto;
-    padding: 12px 16px;
+    padding: 16px 20px;
 }
 
 #config-header {
@@ -490,7 +509,7 @@ body {
 }
 
 .config-section h3 {
-    font-size: 11px;
+    font-size: 10px;
     color: var(--dim);
     text-transform: uppercase;
     letter-spacing: 1.5px;
@@ -514,9 +533,9 @@ body {
 
 .config-input {
     background: var(--bg);
-    color: var(--dro-green);
+    color: var(--text-bright);
     border: 1px solid var(--card-border);
-    border-radius: 3px;
+    border-radius: 4px;
     padding: 4px 8px;
     font-size: 13px;
     font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', monospace;
@@ -526,7 +545,7 @@ body {
 }
 
 .config-input:focus {
-    border-color: var(--dro-green);
+    border-color: var(--accent);
 }
 
 .config-input.readonly {
@@ -541,15 +560,28 @@ body {
 
 /* ===== Responsive ===== */
 @media (max-width: 768px) {
+    #toolbar-left {
+        width: 44px;
+    }
+
+    .tb-btn {
+        width: 36px;
+        font-size: 10px;
+    }
+
+    #status-bar {
+        width: 160px;
+    }
+
     .axis-readout {
-        font-size: clamp(28px, 12vw, 56px);
+        font-size: clamp(28px, 8vw, 48px);
     }
 
-    .side-panel {
-        --panel-width: 200px;
+    .axis-row.active .axis-readout {
+        font-size: clamp(36px, 12vw, 72px);
     }
 
-    .rpm-value {
+    .sb-rpm {
         font-size: 22px;
     }
 }

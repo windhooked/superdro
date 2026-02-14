@@ -14,7 +14,14 @@ const state = {
     configValues: {},
     configDirty: new Set(),
     savedPositions: [],       // [{label, x, z, unit, xMode}]
+    activeAxis: null,         // 'x' | 'z' | null (for dynamic zoom)
+    prevXPosMm: 0,
+    prevZPosMm: 0,
 };
+
+let activeAxisTimer = null;
+const MOVE_THRESHOLD = 0.001;  // mm — minimum delta to detect movement
+const ZOOM_TIMEOUT = 500;      // ms — clear active axis after movement stops
 
 // --- WebSocket ---
 let ws = null;
@@ -75,7 +82,38 @@ function handleStatus(msg) {
     state.rpm = msg.rpm;
     state.machineState = msg.state;
     state.feedHold = msg.fh;
+
+    // Dynamic zoom: detect which axis is moving
+    const xDelta = Math.abs(state.xPosMm - state.prevXPosMm);
+    const zDelta = Math.abs(state.zPosMm - state.prevZPosMm);
+
+    if (xDelta > MOVE_THRESHOLD || zDelta > MOVE_THRESHOLD) {
+        const newActive = xDelta >= zDelta ? 'x' : 'z';
+        setActiveAxis(newActive);
+    }
+
+    state.prevXPosMm = state.xPosMm;
+    state.prevZPosMm = state.zPosMm;
+
     updateDRO();
+}
+
+function setActiveAxis(axis) {
+    if (state.activeAxis !== axis) {
+        state.activeAxis = axis;
+        document.querySelectorAll('.axis-row').forEach(row => {
+            row.classList.toggle('active', row.dataset.axis === axis);
+        });
+    }
+    // Reset timeout — clear active state after movement stops
+    if (activeAxisTimer) clearTimeout(activeAxisTimer);
+    activeAxisTimer = setTimeout(() => {
+        state.activeAxis = null;
+        document.querySelectorAll('.axis-row').forEach(row => {
+            row.classList.remove('active');
+        });
+        activeAxisTimer = null;
+    }, ZOOM_TIMEOUT);
 }
 
 function handleAck(msg) {
@@ -87,7 +125,6 @@ function handleAck(msg) {
         state.configValues[msg.key] = msg.value;
         renderConfig();
     }
-    // Could show toast feedback for zero/preset ACKs
 }
 
 function handleMeta(msg) {
@@ -174,6 +211,11 @@ function zeroAxis(axis) {
     sendCommand({ cmd: 'zero', axis: axis });
 }
 
+function zeroAll() {
+    sendCommand({ cmd: 'zero', axis: 'x' });
+    sendCommand({ cmd: 'zero', axis: 'z' });
+}
+
 let presetAxis = null;
 
 function showPreset(axis) {
@@ -227,9 +269,11 @@ function toggleXMode() {
 // --- Tab switching ---
 
 function switchTab(tab) {
-    document.querySelectorAll('.tab-btn').forEach(btn => {
+    // Update left toolbar buttons
+    document.querySelectorAll('.tb-btn[data-tab]').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.tab === tab);
     });
+    // Update tab content
     document.querySelectorAll('.tab-content').forEach(el => {
         el.classList.toggle('active', el.id === 'tab-' + tab);
     });
@@ -264,7 +308,6 @@ function loadConfig() {
 }
 
 function saveConfig() {
-    // Send config_set for each dirty key, then config_save
     for (const key of state.configDirty) {
         const val = state.configValues[key];
         sendCommand({ cmd: 'config_set', key: key, value: String(val) });
@@ -278,7 +321,6 @@ function renderConfig() {
     const container = document.getElementById('config-categories');
     container.innerHTML = '';
 
-    // Group by category
     const categories = {};
     for (const param of CONFIG_PARAMS) {
         if (!categories[param.category]) {
@@ -329,11 +371,7 @@ function renderConfig() {
     }
 }
 
-// --- Side panel (saved positions) ---
-
-function toggleSidePanel() {
-    document.getElementById('side-panel').classList.toggle('collapsed');
-}
+// --- Saved positions (right status bar) ---
 
 function saveCurrentPosition() {
     const label = `P${state.savedPositions.length + 1}`;
