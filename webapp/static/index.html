@@ -20,47 +20,61 @@
         <div id="toggles">
             <button id="unit-toggle" class="toggle-btn" onclick="toggleUnit()">mm</button>
             <button id="xmode-toggle" class="toggle-btn" onclick="toggleXMode()">DIA</button>
+            <button id="panel-toggle" class="toggle-btn" onclick="toggleSidePanel()">&#9776;</button>
         </div>
     </header>
 
     <!-- DRO Tab -->
     <main id="tab-dro" class="tab-content active">
-        <div class="dro-grid">
-            <!-- X Panel -->
-            <div class="dro-panel">
-                <div class="panel-header">
-                    <span class="axis-label x-color">X</span>
-                    <span class="axis-sublabel" id="x-sublabel">DIA</span>
+        <div class="dro-layout">
+            <!-- Main readout area -->
+            <div class="dro-main">
+                <!-- RPM bar -->
+                <div class="rpm-bar">
+                    <span class="rpm-label">RPM</span>
+                    <span class="rpm-value" id="rpm-value">0</span>
+                    <span class="state-badge" id="state-indicator">IDLE</span>
                 </div>
-                <div class="panel-value x-color" id="x-value">+0.000</div>
-                <div class="panel-unit" id="x-unit">mm</div>
-                <div class="panel-buttons">
-                    <button class="dro-btn" onclick="zeroAxis('x')">ZERO</button>
-                    <button class="dro-btn" onclick="showPreset('x')">SET</button>
+
+                <!-- X Axis row -->
+                <div class="axis-row">
+                    <div class="axis-label-group">
+                        <span class="axis-tag">X</span>
+                        <span class="axis-mode" id="x-sublabel">DIA</span>
+                    </div>
+                    <div class="axis-readout" id="x-value">+0.000</div>
+                    <span class="axis-unit" id="x-unit">mm</span>
+                    <div class="axis-buttons">
+                        <button class="axis-btn" onclick="zeroAxis('x')">ZERO</button>
+                        <button class="axis-btn" onclick="showPreset('x')">SET</button>
+                    </div>
+                </div>
+
+                <!-- Z Axis row -->
+                <div class="axis-row">
+                    <div class="axis-label-group">
+                        <span class="axis-tag">Z</span>
+                    </div>
+                    <div class="axis-readout" id="z-value">+0.000</div>
+                    <span class="axis-unit" id="z-unit">mm</span>
+                    <div class="axis-buttons">
+                        <button class="axis-btn" onclick="zeroAxis('z')">ZERO</button>
+                        <button class="axis-btn" onclick="showPreset('z')">SET</button>
+                    </div>
                 </div>
             </div>
 
-            <!-- Z Panel -->
-            <div class="dro-panel">
-                <div class="panel-header">
-                    <span class="axis-label z-color">Z</span>
+            <!-- Side panel (saved coordinates) -->
+            <aside id="side-panel" class="side-panel collapsed">
+                <div class="side-panel-header">
+                    <h3>Saved Positions</h3>
+                    <button class="axis-btn btn-small" onclick="saveCurrentPosition()">+</button>
                 </div>
-                <div class="panel-value z-color" id="z-value">+0.000</div>
-                <div class="panel-unit" id="z-unit">mm</div>
-                <div class="panel-buttons">
-                    <button class="dro-btn" onclick="zeroAxis('z')">ZERO</button>
-                    <button class="dro-btn" onclick="showPreset('z')">SET</button>
+                <div id="saved-positions" class="saved-list"></div>
+                <div class="side-panel-footer">
+                    <button class="axis-btn btn-small btn-dim" onclick="clearAllPositions()">CLEAR ALL</button>
                 </div>
-            </div>
-
-            <!-- RPM Panel -->
-            <div class="dro-panel rpm-panel">
-                <div class="panel-header">
-                    <span class="axis-label rpm-color">RPM</span>
-                </div>
-                <div class="panel-value rpm-color" id="rpm-value">0</div>
-                <div class="panel-state" id="state-indicator">IDLE</div>
-            </div>
+            </aside>
         </div>
     </main>
 
@@ -69,8 +83,8 @@
         <div id="config-header">
             <h2>Machine Configuration</h2>
             <div id="config-actions">
-                <button class="dro-btn" onclick="loadConfig()">LOAD</button>
-                <button class="dro-btn" onclick="saveConfig()">SAVE</button>
+                <button class="axis-btn" onclick="loadConfig()">LOAD</button>
+                <button class="axis-btn" onclick="saveConfig()">SAVE</button>
             </div>
         </div>
         <div id="config-categories"></div>
@@ -86,8 +100,8 @@
             <input type="number" id="preset-input" step="any" placeholder="0.000"
                    onkeydown="if(event.key==='Enter')confirmPreset()">
             <div class="dialog-buttons">
-                <button class="dro-btn" onclick="cancelPreset()">Cancel</button>
-                <button class="dro-btn btn-green" onclick="confirmPreset()">SET</button>
+                <button class="axis-btn" onclick="cancelPreset()">Cancel</button>
+                <button class="axis-btn btn-green" onclick="confirmPreset()">SET</button>
             </div>
         </div>
     </div>

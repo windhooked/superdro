@@ -1,17 +1,23 @@
-/* SuperDRO — Dark workshop theme matching Android app */
+/* SuperDRO — TouchDRO-inspired dark workshop theme */
 
 :root {
-    --bg:        #1A1A1A;
-    --card:      #222222;
-    --btn:       #333333;
-    --btn-hover: #444444;
-    --x-color:   #00FF88;
-    --z-color:   #44BBFF;
-    --rpm-color: #FFDD44;
-    --alarm:     #FF4444;
-    --dim:       #666666;
-    --text:      #FFFFFF;
-    --dialog-bg: #2A2A2A;
+    --bg:          #0A0A0A;
+    --card:        #141414;
+    --card-border: #2A2A2A;
+    --btn:         #1E1E1E;
+    --btn-hover:   #2A2A2A;
+    --btn-active:  #333333;
+    --dro-green:   #AAFF00;
+    --rpm-color:   #AAFF00;
+    --alarm:       #FF3333;
+    --dim:         #555555;
+    --dim-light:   #888888;
+    --text:        #CCCCCC;
+    --text-bright: #FFFFFF;
+    --dialog-bg:   #1A1A1A;
+    --accent:      #AAFF00;
+    --panel-bg:    #111111;
+    --panel-width: 240px;
 }
 
 * {
@@ -30,15 +36,16 @@ body {
     flex-direction: column;
 }
 
-/* Top bar */
+/* ===== Top bar ===== */
 #top-bar {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 8px 16px;
+    padding: 6px 12px;
     background: var(--card);
-    border-bottom: 1px solid #333;
+    border-bottom: 1px solid var(--card-border);
     flex-shrink: 0;
+    height: 40px;
 }
 
 #connection-status {
@@ -48,41 +55,44 @@ body {
 }
 
 .dot {
-    width: 12px;
-    height: 12px;
+    width: 10px;
+    height: 10px;
     border-radius: 50%;
     display: inline-block;
 }
 
-.dot-green  { background: var(--x-color); }
-.dot-yellow { background: var(--rpm-color); }
-.dot-red    { background: var(--alarm); }
+.dot-green  { background: var(--dro-green); box-shadow: 0 0 6px var(--dro-green); }
+.dot-yellow { background: #FFAA00; box-shadow: 0 0 6px #FFAA00; }
+.dot-red    { background: var(--alarm); box-shadow: 0 0 6px var(--alarm); }
 .dot-gray   { background: var(--dim); }
 
 #status-text {
-    font-size: 14px;
-    color: var(--dim);
+    font-size: 12px;
+    color: var(--dim-light);
 }
 
 #tabs {
     display: flex;
-    gap: 4px;
+    gap: 2px;
 }
 
 .tab-btn {
     background: var(--btn);
-    color: var(--dim);
-    border: none;
-    padding: 6px 16px;
-    border-radius: 4px;
+    color: var(--dim-light);
+    border: 1px solid var(--card-border);
+    padding: 4px 14px;
+    border-radius: 3px;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .tab-btn.active {
-    color: var(--text);
-    background: #444;
+    color: var(--dro-green);
+    border-color: var(--dro-green);
+    background: #1a2a10;
 }
 
 .tab-btn:hover {
@@ -91,26 +101,27 @@ body {
 
 #toggles {
     display: flex;
-    gap: 8px;
+    gap: 4px;
 }
 
 .toggle-btn {
     background: var(--btn);
     color: var(--text);
-    border: none;
-    padding: 6px 12px;
-    border-radius: 4px;
+    border: 1px solid var(--card-border);
+    padding: 4px 10px;
+    border-radius: 3px;
     cursor: pointer;
-    font-size: 16px;
+    font-size: 13px;
     font-weight: 600;
-    min-width: 50px;
+    min-width: 42px;
+    text-align: center;
 }
 
 .toggle-btn:hover {
     background: var(--btn-hover);
 }
 
-/* Tab content */
+/* ===== Tab content ===== */
 .tab-content {
     display: none;
     flex: 1;
@@ -121,138 +132,290 @@ body {
     display: flex;
 }
 
-/* DRO Grid */
-.dro-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr 0.6fr;
-    gap: 12px;
-    padding: 12px;
+/* ===== DRO Layout (hybrid rows + side panel) ===== */
+.dro-layout {
+    display: flex;
     flex: 1;
-    height: 100%;
+    overflow: hidden;
 }
 
-.dro-panel {
-    background: var(--card);
-    border-radius: 8px;
-    padding: 16px 20px;
+.dro-main {
+    flex: 1;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    min-width: 0;
+}
+
+/* ===== RPM Bar ===== */
+.rpm-bar {
+    display: flex;
     align-items: center;
+    gap: 16px;
+    padding: 6px 16px;
+    background: var(--card);
+    border-bottom: 1px solid var(--card-border);
+    flex-shrink: 0;
+}
+
+.rpm-label {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--dim-light);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.rpm-value {
+    font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', 'Menlo', 'Courier New', monospace;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--dro-green);
+    min-width: 100px;
+}
+
+.state-badge {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--dim);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 2px 8px;
+    border-radius: 3px;
+    background: var(--btn);
+    border: 1px solid var(--card-border);
+}
+
+.state-badge.alarm-state {
+    color: var(--alarm);
+    border-color: var(--alarm);
+    background: #2a0a0a;
+}
+
+/* ===== Axis Rows ===== */
+.axis-row {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    padding: 0 16px;
+    background: var(--bg);
+    border-bottom: 1px solid var(--card-border);
+    gap: 16px;
+    min-height: 0;
+}
+
+.axis-label-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 50px;
+    gap: 2px;
+}
+
+.axis-tag {
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--dro-green);
+    line-height: 1;
+}
+
+.axis-mode {
+    font-size: 11px;
+    color: var(--dim);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.axis-readout {
+    flex: 1;
+    font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', 'Menlo', 'Courier New', monospace;
+    font-size: clamp(40px, 8vw, 80px);
+    font-weight: 700;
+    color: var(--dro-green);
+    text-align: right;
+    letter-spacing: -1px;
+    white-space: nowrap;
+    overflow: hidden;
+    padding-right: 8px;
+    line-height: 1;
+    text-shadow: 0 0 12px rgba(170, 255, 0, 0.15);
+}
+
+.axis-unit {
+    font-size: 14px;
+    color: var(--dim);
+    font-weight: 600;
+    min-width: 24px;
+}
+
+.axis-buttons {
+    display: flex;
+    flex-direction: column;
     gap: 4px;
 }
 
-.rpm-panel {
-    /* Narrower column via grid, no extra styling needed */
-}
-
-.panel-header {
-    display: flex;
-    align-items: baseline;
-    gap: 12px;
-}
-
-.axis-label {
-    font-size: 28px;
-    font-weight: 700;
-}
-
-.axis-sublabel {
-    font-size: 16px;
-    color: var(--dim);
-}
-
-.panel-value {
-    font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', 'Menlo', 'Courier New', monospace;
-    font-size: clamp(32px, 6vw, 72px);
-    font-weight: 700;
-    letter-spacing: -1px;
-    white-space: nowrap;
-    line-height: 1.1;
-}
-
-.panel-unit {
-    font-size: 18px;
-    color: var(--dim);
-}
-
-.panel-state {
-    font-size: 14px;
-    color: var(--dim);
-    text-transform: uppercase;
-    margin-top: 8px;
-}
-
-.panel-state.alarm-text {
-    color: var(--alarm);
-    font-weight: 700;
-}
-
-.panel-buttons {
-    display: flex;
-    gap: 8px;
-    margin-top: 8px;
-}
-
-.dro-btn {
+.axis-btn {
     background: var(--btn);
     color: var(--text);
-    border: none;
-    padding: 8px 20px;
-    border-radius: 4px;
+    border: 1px solid var(--card-border);
+    padding: 6px 14px;
+    border-radius: 3px;
     cursor: pointer;
-    font-size: 16px;
-    font-weight: 600;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
 }
 
-.dro-btn:hover {
+.axis-btn:hover {
     background: var(--btn-hover);
+    border-color: var(--dim);
 }
 
-.dro-btn:active {
-    background: #555;
+.axis-btn:active {
+    background: var(--btn-active);
+}
+
+.btn-small {
+    padding: 4px 10px;
+    font-size: 11px;
+}
+
+.btn-dim {
+    color: var(--dim);
 }
 
 .btn-green {
-    background: #006633;
+    color: var(--dro-green);
+    border-color: #446600;
 }
 
 .btn-green:hover {
-    background: #008844;
+    background: #1a2a10;
+    border-color: var(--dro-green);
 }
 
-/* Color classes */
-.x-color   { color: var(--x-color); }
-.z-color   { color: var(--z-color); }
-.rpm-color { color: var(--rpm-color); }
+/* ===== Side Panel (saved coordinates) ===== */
+.side-panel {
+    width: var(--panel-width);
+    background: var(--panel-bg);
+    border-left: 1px solid var(--card-border);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    transition: width 0.2s ease, opacity 0.2s ease;
+    overflow: hidden;
+}
 
-/* Alarm banner */
+.side-panel.collapsed {
+    width: 0;
+    border-left: none;
+}
+
+.side-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--card-border);
+    flex-shrink: 0;
+}
+
+.side-panel-header h3 {
+    font-size: 12px;
+    color: var(--dim-light);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.saved-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 4px 0;
+}
+
+.saved-item {
+    display: flex;
+    flex-direction: column;
+    padding: 6px 12px;
+    border-bottom: 1px solid #1a1a1a;
+    cursor: pointer;
+    transition: background 0.1s;
+}
+
+.saved-item:hover {
+    background: var(--btn);
+}
+
+.saved-item-label {
+    font-size: 11px;
+    color: var(--dim);
+    font-weight: 600;
+    margin-bottom: 2px;
+}
+
+.saved-item-coords {
+    font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', monospace;
+    font-size: 12px;
+    color: var(--dro-green);
+}
+
+.saved-item-actions {
+    display: flex;
+    gap: 4px;
+    margin-top: 4px;
+}
+
+.saved-item .delete-btn {
+    font-size: 10px;
+    color: var(--dim);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0 4px;
+}
+
+.saved-item .delete-btn:hover {
+    color: var(--alarm);
+}
+
+.side-panel-footer {
+    padding: 8px 12px;
+    border-top: 1px solid var(--card-border);
+    flex-shrink: 0;
+}
+
+/* ===== Alarm banner ===== */
 #alarm-banner {
     position: fixed;
     bottom: 0;
     left: 0;
     right: 0;
-    background: rgba(255, 68, 68, 0.15);
+    background: rgba(255, 51, 51, 0.12);
     color: var(--alarm);
     text-align: center;
-    padding: 12px;
-    font-size: 24px;
-    font-weight: 700;
+    padding: 10px;
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: 4px;
     border-top: 2px solid var(--alarm);
+    text-shadow: 0 0 8px rgba(255, 51, 51, 0.4);
 }
 
 .hidden {
     display: none !important;
 }
 
-/* Preset dialog */
+/* ===== Preset dialog ===== */
 .dialog-overlay {
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.6);
+    background: rgba(0, 0, 0, 0.7);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -261,31 +424,34 @@ body {
 
 .dialog {
     background: var(--dialog-bg);
-    border-radius: 8px;
-    padding: 24px;
-    min-width: 300px;
+    border: 1px solid var(--card-border);
+    border-radius: 6px;
+    padding: 20px;
+    min-width: 280px;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 14px;
 }
 
 .dialog h3 {
-    font-size: 18px;
+    font-size: 16px;
+    color: var(--text-bright);
 }
 
 .dialog input {
     background: var(--bg);
-    color: var(--text);
-    border: 1px solid var(--dim);
-    border-radius: 4px;
+    color: var(--dro-green);
+    border: 1px solid var(--card-border);
+    border-radius: 3px;
     padding: 10px 12px;
-    font-size: 18px;
+    font-size: 20px;
     font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', monospace;
     outline: none;
 }
 
 .dialog input:focus {
-    border-color: var(--x-color);
+    border-color: var(--dro-green);
+    box-shadow: 0 0 4px rgba(170, 255, 0, 0.2);
 }
 
 .dialog-buttons {
@@ -294,11 +460,11 @@ body {
     justify-content: flex-end;
 }
 
-/* Config tab */
+/* ===== Config tab ===== */
 #tab-config {
     flex-direction: column;
     overflow-y: auto;
-    padding: 12px;
+    padding: 12px 16px;
 }
 
 #config-header {
@@ -309,13 +475,14 @@ body {
 }
 
 #config-header h2 {
-    font-size: 20px;
+    font-size: 16px;
     font-weight: 600;
+    color: var(--text-bright);
 }
 
 #config-actions {
     display: flex;
-    gap: 8px;
+    gap: 6px;
 }
 
 .config-section {
@@ -323,34 +490,35 @@ body {
 }
 
 .config-section h3 {
-    font-size: 14px;
+    font-size: 11px;
     color: var(--dim);
     text-transform: uppercase;
-    letter-spacing: 1px;
-    margin-bottom: 8px;
+    letter-spacing: 1.5px;
+    font-weight: 700;
+    margin-bottom: 6px;
     padding-bottom: 4px;
-    border-bottom: 1px solid #333;
+    border-bottom: 1px solid var(--card-border);
 }
 
 .config-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 6px 0;
+    padding: 5px 0;
 }
 
 .config-label {
-    font-size: 14px;
-    color: var(--dim);
+    font-size: 13px;
+    color: var(--dim-light);
 }
 
 .config-input {
     background: var(--bg);
-    color: var(--text);
-    border: 1px solid #444;
-    border-radius: 4px;
+    color: var(--dro-green);
+    border: 1px solid var(--card-border);
+    border-radius: 3px;
     padding: 4px 8px;
-    font-size: 14px;
+    font-size: 13px;
     font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', monospace;
     width: 120px;
     text-align: right;
@@ -358,7 +526,7 @@ body {
 }
 
 .config-input:focus {
-    border-color: var(--x-color);
+    border-color: var(--dro-green);
 }
 
 .config-input.readonly {
@@ -368,17 +536,20 @@ body {
 }
 
 .config-input.dirty {
-    border-color: var(--rpm-color);
+    border-color: #FFAA00;
 }
 
-/* Responsive: stack on narrow screens */
+/* ===== Responsive ===== */
 @media (max-width: 768px) {
-    .dro-grid {
-        grid-template-columns: 1fr;
-        grid-template-rows: 1fr 1fr auto;
+    .axis-readout {
+        font-size: clamp(28px, 12vw, 56px);
     }
 
-    .panel-value {
-        font-size: clamp(28px, 10vw, 56px);
+    .side-panel {
+        --panel-width: 200px;
+    }
+
+    .rpm-value {
+        font-size: 22px;
     }
 }

@@ -13,6 +13,7 @@ const state = {
     serialConnected: false,
     configValues: {},
     configDirty: new Set(),
+    savedPositions: [],       // [{label, x, z, unit, xMode}]
 };
 
 // --- WebSocket ---
@@ -137,9 +138,9 @@ function updateDRO() {
     const stateEl = document.getElementById('state-indicator');
     stateEl.textContent = state.machineState.toUpperCase();
     if (state.machineState === 'alarm') {
-        stateEl.className = 'panel-state alarm-text';
+        stateEl.className = 'state-badge alarm-state';
     } else {
-        stateEl.className = 'panel-state';
+        stateEl.className = 'state-badge';
     }
 
     // Alarm banner
@@ -325,6 +326,84 @@ function renderConfig() {
         }
 
         container.appendChild(section);
+    }
+}
+
+// --- Side panel (saved positions) ---
+
+function toggleSidePanel() {
+    document.getElementById('side-panel').classList.toggle('collapsed');
+}
+
+function saveCurrentPosition() {
+    const label = `P${state.savedPositions.length + 1}`;
+    state.savedPositions.push({
+        label: label,
+        x: state.xPosMm,
+        z: state.zPosMm,
+        unit: state.unitMode,
+        xMode: state.xDisplayMode,
+    });
+    renderSavedPositions();
+}
+
+function clearAllPositions() {
+    state.savedPositions = [];
+    renderSavedPositions();
+}
+
+function deletePosition(index) {
+    state.savedPositions.splice(index, 1);
+    renderSavedPositions();
+}
+
+function recallPosition(index) {
+    const pos = state.savedPositions[index];
+    if (!pos) return;
+    sendCommand({ cmd: 'preset', axis: 'x', value: pos.x });
+    sendCommand({ cmd: 'preset', axis: 'z', value: pos.z });
+}
+
+function renderSavedPositions() {
+    const container = document.getElementById('saved-positions');
+    container.innerHTML = '';
+
+    for (let i = 0; i < state.savedPositions.length; i++) {
+        const pos = state.savedPositions[i];
+        const xDisplay = formatValue(displayX(pos.x));
+        const zDisplay = formatValue(displayZ(pos.z));
+        const unit = unitLabel();
+
+        const item = document.createElement('div');
+        item.className = 'saved-item';
+
+        const labelEl = document.createElement('div');
+        labelEl.className = 'saved-item-label';
+        labelEl.textContent = pos.label;
+
+        const coordsEl = document.createElement('div');
+        coordsEl.className = 'saved-item-coords';
+        coordsEl.textContent = `X ${xDisplay}  Z ${zDisplay} ${unit}`;
+
+        const actionsEl = document.createElement('div');
+        actionsEl.className = 'saved-item-actions';
+
+        const recallBtn = document.createElement('button');
+        recallBtn.className = 'delete-btn';
+        recallBtn.textContent = 'RECALL';
+        recallBtn.onclick = () => recallPosition(i);
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'delete-btn';
+        deleteBtn.textContent = '\u00D7';
+        deleteBtn.onclick = (e) => { e.stopPropagation(); deletePosition(i); };
+
+        actionsEl.appendChild(recallBtn);
+        actionsEl.appendChild(deleteBtn);
+        item.appendChild(labelEl);
+        item.appendChild(coordsEl);
+        item.appendChild(actionsEl);
+        container.appendChild(item);
     }
 }
 
