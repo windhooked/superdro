@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SuperDRO</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Top bar -->
+    <header id="top-bar">
+        <div id="connection-status">
+            <span id="status-dot" class="dot dot-red"></span>
+            <span id="status-text">Disconnected</span>
+        </div>
+        <nav id="tabs">
+            <button class="tab-btn active" data-tab="dro" onclick="switchTab('dro')">DRO</button>
+            <button class="tab-btn" data-tab="config" onclick="switchTab('config')">Config</button>
+        </nav>
+        <div id="toggles">
+            <button id="unit-toggle" class="toggle-btn" onclick="toggleUnit()">mm</button>
+            <button id="xmode-toggle" class="toggle-btn" onclick="toggleXMode()">DIA</button>
+        </div>
+    </header>
+
+    <!-- DRO Tab -->
+    <main id="tab-dro" class="tab-content active">
+        <div class="dro-grid">
+            <!-- X Panel -->
+            <div class="dro-panel">
+                <div class="panel-header">
+                    <span class="axis-label x-color">X</span>
+                    <span class="axis-sublabel" id="x-sublabel">DIA</span>
+                </div>
+                <div class="panel-value x-color" id="x-value">+0.000</div>
+                <div class="panel-unit" id="x-unit">mm</div>
+                <div class="panel-buttons">
+                    <button class="dro-btn" onclick="zeroAxis('x')">ZERO</button>
+                    <button class="dro-btn" onclick="showPreset('x')">SET</button>
+                </div>
+            </div>
+
+            <!-- Z Panel -->
+            <div class="dro-panel">
+                <div class="panel-header">
+                    <span class="axis-label z-color">Z</span>
+                </div>
+                <div class="panel-value z-color" id="z-value">+0.000</div>
+                <div class="panel-unit" id="z-unit">mm</div>
+                <div class="panel-buttons">
+                    <button class="dro-btn" onclick="zeroAxis('z')">ZERO</button>
+                    <button class="dro-btn" onclick="showPreset('z')">SET</button>
+                </div>
+            </div>
+
+            <!-- RPM Panel -->
+            <div class="dro-panel rpm-panel">
+                <div class="panel-header">
+                    <span class="axis-label rpm-color">RPM</span>
+                </div>
+                <div class="panel-value rpm-color" id="rpm-value">0</div>
+                <div class="panel-state" id="state-indicator">IDLE</div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Config Tab -->
+    <main id="tab-config" class="tab-content">
+        <div id="config-header">
+            <h2>Machine Configuration</h2>
+            <div id="config-actions">
+                <button class="dro-btn" onclick="loadConfig()">LOAD</button>
+                <button class="dro-btn" onclick="saveConfig()">SAVE</button>
+            </div>
+        </div>
+        <div id="config-categories"></div>
+    </main>
+
+    <!-- Alarm banner -->
+    <div id="alarm-banner" class="hidden">ALARM</div>
+
+    <!-- Preset dialog -->
+    <div id="preset-overlay" class="dialog-overlay hidden" onclick="cancelPreset()">
+        <div class="dialog" onclick="event.stopPropagation()">
+            <h3 id="preset-title">Set X Position</h3>
+            <input type="number" id="preset-input" step="any" placeholder="0.000"
+                   onkeydown="if(event.key==='Enter')confirmPreset()">
+            <div class="dialog-buttons">
+                <button class="dro-btn" onclick="cancelPreset()">Cancel</button>
+                <button class="dro-btn btn-green" onclick="confirmPreset()">SET</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

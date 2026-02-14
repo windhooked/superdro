@@ -18,6 +18,10 @@ superdro/
 │   ├── src/           # C source files
 │   └── pio/           # PIO assembly programs
 ├── android/           # Kotlin/Compose Android app (Gradle)
+├── webapp/            # Go + HTML/JS development companion (USB serial → browser)
+│   ├── cmd/superdro-web/  # Entry point
+│   ├── internal/      # Serial manager + WebSocket hub
+│   └── static/        # HTML/CSS/JS frontend
 ├── docs/              # Wiring diagrams, BOM, protocol docs
 └── prd.md             # Full PRD with Phase 1 implementation plan
 ```
@@ -65,10 +69,18 @@ superdro/
 - Jetpack Compose UI, MVVM with ViewModels + StateFlow
 - Dark background, high-contrast digits for workshop visibility
 
+## Webapp (Development Companion)
+
+- Go + HTML/JS web app that replicates the Android DRO display in a browser
+- Connects to Pico W via USB serial, bridges to browser via WebSocket
+- Run: `cd webapp && go run ./cmd/superdro-web/ -sim` (simulated) or `go run ./cmd/superdro-web/` (auto-detect serial)
+- Dark workshop theme matching Android app colors
+
 ## Build
 
 - Firmware: CMake with Pico SDK, target `pico_w` (`arm-none-eabi-gcc`)
 - Android: Gradle with Kotlin/Compose
+- Webapp: `cd webapp && go build ./cmd/superdro-web/`
 
 ## Testing
 

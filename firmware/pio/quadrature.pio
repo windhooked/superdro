@@ -1,6 +1,6 @@
 ; quadrature.pio — 4x quadrature decoder
 ; Decodes A/B encoder signals into a signed 32-bit counter.
-; Used for both spindle encoder (PIO 0, SM 0) and X-axis scale (PIO 0, SM 1).
+; Used for spindle encoder (PIO 0, SM 0), X-axis scale (PIO 0, SM 1), and Z-axis scale (PIO 0, SM 2).
 ;
 ; Pin mapping: base_pin = A, base_pin+1 = B
 ; Counter stored in X register.

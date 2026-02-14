@@ -18,6 +18,9 @@ android/local.properties
 android/.idea/
 android/*.iml
 
+# Go webapp
+webapp/superdro-web
+
 # IDE
 .vscode/
 *.swp

@@ -1,0 +1,384 @@
+/* SuperDRO — Dark workshop theme matching Android app */
+
+:root {
+    --bg:        #1A1A1A;
+    --card:      #222222;
+    --btn:       #333333;
+    --btn-hover: #444444;
+    --x-color:   #00FF88;
+    --z-color:   #44BBFF;
+    --rpm-color: #FFDD44;
+    --alarm:     #FF4444;
+    --dim:       #666666;
+    --text:      #FFFFFF;
+    --dialog-bg: #2A2A2A;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Top bar */
+#top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 16px;
+    background: var(--card);
+    border-bottom: 1px solid #333;
+    flex-shrink: 0;
+}
+
+#connection-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.dot-green  { background: var(--x-color); }
+.dot-yellow { background: var(--rpm-color); }
+.dot-red    { background: var(--alarm); }
+.dot-gray   { background: var(--dim); }
+
+#status-text {
+    font-size: 14px;
+    color: var(--dim);
+}
+
+#tabs {
+    display: flex;
+    gap: 4px;
+}
+
+.tab-btn {
+    background: var(--btn);
+    color: var(--dim);
+    border: none;
+    padding: 6px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.tab-btn.active {
+    color: var(--text);
+    background: #444;
+}
+
+.tab-btn:hover {
+    background: var(--btn-hover);
+}
+
+#toggles {
+    display: flex;
+    gap: 8px;
+}
+
+.toggle-btn {
+    background: var(--btn);
+    color: var(--text);
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 600;
+    min-width: 50px;
+}
+
+.toggle-btn:hover {
+    background: var(--btn-hover);
+}
+
+/* Tab content */
+.tab-content {
+    display: none;
+    flex: 1;
+    overflow: hidden;
+}
+
+.tab-content.active {
+    display: flex;
+}
+
+/* DRO Grid */
+.dro-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 0.6fr;
+    gap: 12px;
+    padding: 12px;
+    flex: 1;
+    height: 100%;
+}
+
+.dro-panel {
+    background: var(--card);
+    border-radius: 8px;
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 4px;
+}
+
+.rpm-panel {
+    /* Narrower column via grid, no extra styling needed */
+}
+
+.panel-header {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+}
+
+.axis-label {
+    font-size: 28px;
+    font-weight: 700;
+}
+
+.axis-sublabel {
+    font-size: 16px;
+    color: var(--dim);
+}
+
+.panel-value {
+    font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', 'Menlo', 'Courier New', monospace;
+    font-size: clamp(32px, 6vw, 72px);
+    font-weight: 700;
+    letter-spacing: -1px;
+    white-space: nowrap;
+    line-height: 1.1;
+}
+
+.panel-unit {
+    font-size: 18px;
+    color: var(--dim);
+}
+
+.panel-state {
+    font-size: 14px;
+    color: var(--dim);
+    text-transform: uppercase;
+    margin-top: 8px;
+}
+
+.panel-state.alarm-text {
+    color: var(--alarm);
+    font-weight: 700;
+}
+
+.panel-buttons {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.dro-btn {
+    background: var(--btn);
+    color: var(--text);
+    border: none;
+    padding: 8px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.dro-btn:hover {
+    background: var(--btn-hover);
+}
+
+.dro-btn:active {
+    background: #555;
+}
+
+.btn-green {
+    background: #006633;
+}
+
+.btn-green:hover {
+    background: #008844;
+}
+
+/* Color classes */
+.x-color   { color: var(--x-color); }
+.z-color   { color: var(--z-color); }
+.rpm-color { color: var(--rpm-color); }
+
+/* Alarm banner */
+#alarm-banner {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(255, 68, 68, 0.15);
+    color: var(--alarm);
+    text-align: center;
+    padding: 12px;
+    font-size: 24px;
+    font-weight: 700;
+    border-top: 2px solid var(--alarm);
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* Preset dialog */
+.dialog-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+}
+
+.dialog {
+    background: var(--dialog-bg);
+    border-radius: 8px;
+    padding: 24px;
+    min-width: 300px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.dialog h3 {
+    font-size: 18px;
+}
+
+.dialog input {
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--dim);
+    border-radius: 4px;
+    padding: 10px 12px;
+    font-size: 18px;
+    font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', monospace;
+    outline: none;
+}
+
+.dialog input:focus {
+    border-color: var(--x-color);
+}
+
+.dialog-buttons {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+/* Config tab */
+#tab-config {
+    flex-direction: column;
+    overflow-y: auto;
+    padding: 12px;
+}
+
+#config-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+#config-header h2 {
+    font-size: 20px;
+    font-weight: 600;
+}
+
+#config-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.config-section {
+    margin-bottom: 16px;
+}
+
+.config-section h3 {
+    font-size: 14px;
+    color: var(--dim);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid #333;
+}
+
+.config-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 0;
+}
+
+.config-label {
+    font-size: 14px;
+    color: var(--dim);
+}
+
+.config-input {
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid #444;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 14px;
+    font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', monospace;
+    width: 120px;
+    text-align: right;
+    outline: none;
+}
+
+.config-input:focus {
+    border-color: var(--x-color);
+}
+
+.config-input.readonly {
+    color: var(--dim);
+    border-color: transparent;
+    background: transparent;
+}
+
+.config-input.dirty {
+    border-color: var(--rpm-color);
+}
+
+/* Responsive: stack on narrow screens */
+@media (max-width: 768px) {
+    .dro-grid {
+        grid-template-columns: 1fr;
+        grid-template-rows: 1fr 1fr auto;
+    }
+
+    .panel-value {
+        font-size: clamp(28px, 10vw, 56px);
+    }
+}
