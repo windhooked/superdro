@@ -25,6 +25,9 @@ firmware-test-e2e: ## Run end-to-end tests (simulated serial)
 	cd tests/e2e && make test
 
 firmware-build: ## Cross-compile firmware to .uf2 (requires PICO_SDK_PATH)
+ifndef PICO_SDK_PATH
+	$(error PICO_SDK_PATH is not set. Install the Pico SDK and export PICO_SDK_PATH=/path/to/pico-sdk)
+endif
 	mkdir -p firmware/build
 	cd firmware/build && cmake .. -DPICO_BOARD=pico_w && make -j$$(nproc 2>/dev/null || sysctl -n hw.ncpu)
 
