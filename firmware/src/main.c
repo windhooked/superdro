@@ -4,6 +4,7 @@
 #include "pico/cyw43_arch.h"
 #include "config.h"
 #include "encoder.h"
+#include "stepper.h"
 #include "protocol.h"
 #include "safety.h"
 
@@ -33,6 +34,7 @@ int main(void) {
     config_load();
     config_recalculate();
     encoder_init();
+    stepper_init();
     safety_init();
 
     // Launch Core 1
@@ -43,6 +45,7 @@ int main(void) {
         safety_watchdog_feed();
         safety_debounce_update();
         encoder_update();
+        stepper_update();
 
         axis_position_t x = x_axis_read();
         axis_position_t z = z_axis_read();

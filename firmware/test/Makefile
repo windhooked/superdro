@@ -4,7 +4,7 @@ LDFLAGS = -lm
 
 SRC_DIR = ../src
 MOCK_SRCS = mock_flash.c
-TESTS = test_config test_protocol test_encoder
+TESTS = test_config test_protocol test_encoder test_stepper
 
 .PHONY: all clean test
 
@@ -22,6 +22,9 @@ test_protocol: test_protocol.c $(SRC_DIR)/protocol.c $(SRC_DIR)/config.c $(SRC_D
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
 test_encoder: test_encoder.c $(SRC_DIR)/encoder.c $(SRC_DIR)/config.c $(MOCK_SRCS)
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
+
+test_stepper: test_stepper.c $(SRC_DIR)/stepper.c $(SRC_DIR)/config.c $(MOCK_SRCS)
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
 clean:

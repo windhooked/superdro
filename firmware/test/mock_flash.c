@@ -27,5 +27,13 @@ int _mock_fifo_read_pos[4] = {0};
 int32_t s_counts[4] = {0};
 uint8_t s_prev_state[4] = {0};
 
+// Mock TX FIFO (for stepper PIO)
+uint32_t _mock_tx_fifo_data[4][16];
+int _mock_tx_fifo_count[4] = {0};
+bool _mock_tx_fifo_full[4] = {false};
+
+// Mock GPIO output state
+bool _mock_gpio_state[32] = {false};
+
 // Mock watchdog
 int _mock_watchdog_fed = 0;

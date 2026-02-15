@@ -1,0 +1,81 @@
+; stepper.pio — Step pulse generator for CL57T closed-loop stepper driver.
+;
+; Runs on PIO 1, SM 0. Generates precisely-timed step pulses on GP8 via sideset.
+; Direction (GP9) and enable (GP10) are controlled from C code as plain GPIO.
+;
+; Protocol:
+;   - TX FIFO word = inter-step period delay (PIO clock cycles)
+;   - When FIFO is empty, SM blocks at pull → no pulses → motor holds position
+;   - Y register holds pulse width constant (loaded once at init, never modified)
+;
+; Timing at 133 MHz (no clock divider):
+;   - Each cycle = 7.52 ns
+;   - Pulse width: Y+2 cycles (Y=331 → 2.50 µs, safe for CL57T ≥2.5 µs)
+;   - Period (low phase): X+2 cycles from FIFO value
+;   - Total per step: X + Y + 5 overhead cycles
+
+.program stepper
+.side_set 1
+
+.wrap_target
+    pull        block  side 0     ; [1] Wait for period value. Pin stays LOW.
+    mov x, y           side 1     ; [2] X = pulse width count. Pin goes HIGH.
+pulse_loop:
+    jmp x--, pulse_loop  side 1   ; [3] Count down pulse width, pin HIGH.
+    mov x, osr           side 0   ; [4] X = period delay from OSR. Pin goes LOW.
+period_loop:
+    jmp x--, period_loop side 0   ; [5] Count down inter-step period, pin LOW.
+.wrap
+
+% c-sdk {
+#include "hardware/clocks.h"
+
+#define STEPPER_PULSE_WIDTH_US  2.5f
+#define STEPPER_OVERHEAD_CYCLES 5   // pull + 2×mov + 2× jmp-fall-through
+
+static inline void stepper_program_init(PIO pio, uint sm, uint offset, uint step_pin) {
+    // Configure step pin as PIO sideset output
+    pio_gpio_init(pio, step_pin);
+    pio_sm_set_consecutive_pindirs(pio, sm, step_pin, 1, true);
+
+    pio_sm_config c = stepper_program_get_default_config(offset);
+
+    // Sideset: 1 pin, starting at step_pin
+    sm_config_set_sideset_pins(&c, step_pin);
+
+    // Full system clock — no divider — for maximum timing resolution
+    sm_config_set_clkdiv(&c, 1.0f);
+
+    // Shift: autopull disabled, 32-bit pull
+    sm_config_set_out_shift(&c, true, false, 32);
+
+    pio_sm_init(pio, sm, offset, &c);
+
+    // Pre-load Y register with pulse width delay count.
+    // Y = (pulse_us * sys_hz / 1e6) - 2  (subtract 2 for mov + jmp-fall-through overhead)
+    uint32_t sys_hz = clock_get_hz(clk_sys);
+    uint32_t pulse_cycles = (uint32_t)(STEPPER_PULSE_WIDTH_US * (float)sys_hz / 1e6f) - 2;
+
+    // Load Y via: push value to TX FIFO, pull into OSR, mov y,osr
+    pio_sm_put_blocking(pio, sm, pulse_cycles);
+    pio_sm_exec(pio, sm, pio_encode_pull(false, true));
+    pio_sm_exec(pio, sm, pio_encode_mov(pio_y, pio_osr));
+
+    // SM starts and immediately blocks at pull, waiting for step commands
+    pio_sm_set_enabled(pio, sm, true);
+}
+
+// Calculate the X delay value for a given step frequency.
+// Returns the value to push to the TX FIFO.
+static inline uint32_t stepper_calc_delay(float steps_per_sec) {
+    uint32_t sys_hz = clock_get_hz(clk_sys);
+    uint32_t pulse_cycles = (uint32_t)(STEPPER_PULSE_WIDTH_US * (float)sys_hz / 1e6f);
+    uint32_t total_cycles = (uint32_t)((float)sys_hz / steps_per_sec);
+
+    if (total_cycles <= (pulse_cycles + STEPPER_OVERHEAD_CYCLES)) {
+        return 0;  // maximum speed — minimum period
+    }
+    return total_cycles - pulse_cycles - STEPPER_OVERHEAD_CYCLES;
+}
+
+%}

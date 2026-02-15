@@ -12,12 +12,14 @@ add_executable(superdro
     src/main.c
     src/config.c
     src/encoder.c
+    src/stepper.c
     src/protocol.c
     src/safety.c
 )
 
 # PIO programs
 pico_generate_pio_header(superdro ${CMAKE_CURRENT_LIST_DIR}/pio/quadrature.pio)
+pico_generate_pio_header(superdro ${CMAKE_CURRENT_LIST_DIR}/pio/stepper.pio)
 
 # Pico W compile definitions (PICO_BOARD is set by cmake -DPICO_BOARD=pico_w)
 target_compile_definitions(superdro PRIVATE

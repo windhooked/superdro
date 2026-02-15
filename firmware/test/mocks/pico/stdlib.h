@@ -21,6 +21,12 @@ static inline void gpio_pull_up(uint gpio) { (void)gpio; }
 static inline bool gpio_get(uint gpio) { (void)gpio; return true; /* not pressed */ }
 static inline void gpio_set_function(uint gpio, uint fn) { (void)gpio; (void)fn; }
 
+// GPIO output state tracking (defined in mock_flash.c)
+extern bool _mock_gpio_state[32];
+static inline void gpio_put(uint gpio, bool value) {
+    if (gpio < 32) _mock_gpio_state[gpio] = value;
+}
+
 #define GPIO_IN  false
 #define GPIO_OUT true
 #define GPIO_IRQ_EDGE_FALL 0x04
