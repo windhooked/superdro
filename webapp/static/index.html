@@ -26,6 +26,7 @@
             <button class="tb-btn active" data-tab="dro" onclick="switchTab('dro')" title="DRO">DRO</button>
             <button class="tb-btn" data-tab="config" onclick="switchTab('config')" title="Configuration">CFG</button>
             <button class="tb-btn" data-tab="tool" onclick="switchTab('tool')" title="Tool Offsets">TOOL</button>
+            <button class="tb-btn" data-tab="els" onclick="switchTab('els')" title="Threading / ELS">ELS</button>
             <hr class="tb-sep">
             <button class="tb-btn" onclick="zeroAll()" title="Zero All Axes">0&rarr;</button>
             <button class="tb-btn" id="unit-toggle" onclick="toggleUnit()" title="Toggle mm/in">mm</button>
@@ -96,6 +97,109 @@
                 </thead>
                 <tbody id="tool-table-body"></tbody>
             </table>
+        </main>
+
+        <!-- ELS Tab -->
+        <main id="tab-els" class="tab-content">
+            <div class="els-layout">
+                <!-- Left panel: pitch selection -->
+                <div class="els-select-panel">
+                    <div class="els-header">
+                        <h2>Electronic Leadscrew</h2>
+                    </div>
+
+                    <!-- Thread type tabs -->
+                    <div class="els-type-tabs">
+                        <button class="els-type-btn active" data-type="metric"
+                                onclick="switchElsType('metric')">METRIC</button>
+                        <button class="els-type-btn" data-type="imperial"
+                                onclick="switchElsType('imperial')">IMPERIAL</button>
+                    </div>
+
+                    <!-- Coarse/Fine sub-filter -->
+                    <div class="els-grade-tabs">
+                        <button class="els-grade-btn active" data-grade="coarse"
+                                onclick="switchElsGrade('coarse')">COARSE</button>
+                        <button class="els-grade-btn" data-grade="fine"
+                                onclick="switchElsGrade('fine')">FINE</button>
+                    </div>
+
+                    <!-- Pitch grid -->
+                    <div id="els-pitch-grid" class="els-pitch-grid"></div>
+
+                    <!-- Custom pitch entry -->
+                    <div class="els-custom-row">
+                        <label class="els-custom-label">Custom:</label>
+                        <input type="number" id="els-custom-pitch" class="els-custom-input"
+                               step="any" placeholder="pitch"
+                               onkeydown="if(event.key==='Enter')setCustomPitch()">
+                        <span class="els-custom-unit" id="els-custom-unit">mm</span>
+                        <button class="btn btn-small" onclick="setCustomPitch()">SET</button>
+                    </div>
+                </div>
+
+                <!-- Right panel: controls + live display -->
+                <div class="els-control-panel">
+                    <!-- Direction -->
+                    <div class="els-control-group">
+                        <div class="els-control-label">DIRECTION</div>
+                        <div class="els-btn-group">
+                            <button class="btn els-dir-btn active" data-dir="rh"
+                                    onclick="setElsDir('rh')">RH</button>
+                            <button class="btn els-dir-btn" data-dir="lh"
+                                    onclick="setElsDir('lh')">LH</button>
+                        </div>
+                    </div>
+
+                    <!-- Retract mode -->
+                    <div class="els-control-group">
+                        <div class="els-control-label">RETRACT</div>
+                        <div class="els-btn-group">
+                            <button class="btn els-retract-btn active" data-mode="rapid"
+                                    onclick="setElsRetract('rapid')">RAPID</button>
+                            <button class="btn els-retract-btn" data-mode="spring"
+                                    onclick="setElsRetract('spring')">SPRING</button>
+                        </div>
+                    </div>
+
+                    <!-- State indicator -->
+                    <div class="els-control-group">
+                        <div class="els-control-label">STATE</div>
+                        <div class="els-state-badge els-state-disengaged" id="els-state-indicator">DISENGAGED</div>
+                    </div>
+
+                    <!-- Live values -->
+                    <div class="els-live-display">
+                        <div class="els-live-row">
+                            <span class="els-live-label">PITCH</span>
+                            <span class="els-live-value" id="els-live-pitch">---</span>
+                        </div>
+                        <div class="els-live-row">
+                            <span class="els-live-label">DIR</span>
+                            <span class="els-live-value" id="els-live-dir">RH</span>
+                        </div>
+                        <div class="els-live-row">
+                            <span class="els-live-label">RPM</span>
+                            <span class="els-live-value" id="els-live-rpm">0</span>
+                        </div>
+                        <div class="els-live-row">
+                            <span class="els-live-label">Z POS</span>
+                            <span class="els-live-value" id="els-live-z">+0.000</span>
+                        </div>
+                        <div class="els-live-row">
+                            <span class="els-live-label">PASS</span>
+                            <span class="els-live-value" id="els-live-pass">---</span>
+                        </div>
+                    </div>
+
+                    <!-- Engage / Feed Hold buttons -->
+                    <div class="els-action-buttons">
+                        <button class="btn els-engage-btn" id="els-engage-btn"
+                                onclick="elsEngage()" disabled>ENGAGE</button>
+                        <button class="btn els-hold-btn" onclick="elsFeedHold()">FEED HOLD</button>
+                    </div>
+                </div>
+            </div>
         </main>
 
         <!-- Right status bar -->

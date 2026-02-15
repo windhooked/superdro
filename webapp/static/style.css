@@ -89,20 +89,20 @@ body {
 
 /* ===== Left toolbar ===== */
 #toolbar-left {
-    width: 56px;
+    width: 60px;
     background: var(--toolbar-bg);
     border-right: 1px solid var(--card-border);
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 8px 0;
-    gap: 4px;
+    padding: 10px 0;
+    gap: 6px;
     flex-shrink: 0;
 }
 
 .tb-btn {
-    width: 44px;
-    height: 36px;
+    width: 48px;
+    height: 44px;
     background: transparent;
     color: var(--dim-light);
     border: 1px solid transparent;
@@ -197,7 +197,7 @@ body {
 .axis-readout {
     flex: 1;
     font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', 'Menlo', 'Courier New', monospace;
-    font-size: clamp(36px, 6vw, 64px);
+    font-size: clamp(48px, 8vw, 80px);
     font-weight: 700;
     color: var(--dro-value);
     text-align: right;
@@ -211,7 +211,7 @@ body {
 
 /* Dynamic zoom: active axis gets larger readout */
 .axis-row.active .axis-readout {
-    font-size: clamp(50px, 10vw, 100px);
+    font-size: clamp(64px, 12vw, 120px);
 }
 
 .axis-unit {
@@ -232,7 +232,7 @@ body {
     background: var(--btn);
     color: var(--text);
     border: 1px solid var(--card-border);
-    padding: 6px 14px;
+    padding: 10px 14px;
     border-radius: 4px;
     cursor: pointer;
     font-size: 12px;
@@ -240,6 +240,7 @@ body {
     text-transform: uppercase;
     letter-spacing: 0.5px;
     white-space: nowrap;
+    min-height: 44px;
 }
 
 .btn:hover {
@@ -252,8 +253,9 @@ body {
 }
 
 .btn-small {
-    padding: 4px 10px;
+    padding: 8px 12px;
     font-size: 11px;
+    min-height: 36px;
 }
 
 .btn-dim {
@@ -273,13 +275,13 @@ body {
 
 /* ===== Right status bar ===== */
 #status-bar {
-    width: 200px;
+    width: 220px;
     background: var(--status-bg);
     border-left: 1px solid var(--card-border);
     display: flex;
     flex-direction: column;
     flex-shrink: 0;
-    overflow: hidden;
+    overflow-y: auto;
 }
 
 .sb-section {
@@ -536,12 +538,13 @@ body {
     color: var(--text-bright);
     border: 1px solid var(--card-border);
     border-radius: 4px;
-    padding: 4px 8px;
-    font-size: 13px;
+    padding: 8px 10px;
+    font-size: 14px;
     font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', monospace;
-    width: 120px;
+    width: 130px;
     text-align: right;
     outline: none;
+    min-height: 40px;
 }
 
 .config-input:focus {
@@ -562,6 +565,66 @@ body {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
     gap: 0 24px;
+}
+
+/* Config validation */
+.config-input-wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+.config-input.invalid {
+    border-color: var(--alarm);
+    box-shadow: 0 0 4px rgba(232, 17, 35, 0.3);
+}
+
+.config-tooltip {
+    display: none;
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 4px;
+    padding: 4px 8px;
+    background: #3A2020;
+    color: var(--alarm);
+    border: 1px solid var(--alarm);
+    border-radius: 4px;
+    font-size: 11px;
+    white-space: nowrap;
+    z-index: 10;
+}
+
+.config-tooltip.visible {
+    display: block;
+}
+
+.config-toggle {
+    background: var(--btn);
+    color: var(--dim-light);
+    border: 1px solid var(--card-border);
+    border-radius: 4px;
+    padding: 4px 14px;
+    min-height: 40px;
+    min-width: 60px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.config-toggle.on {
+    background: rgba(0, 120, 215, 0.15);
+    color: var(--accent);
+    border-color: var(--accent);
+}
+
+.config-toggle.dirty {
+    border-color: #FFAA00;
+}
+
+.config-toggle:hover {
+    background: var(--btn-hover);
 }
 
 /* ===== Mode badge & reconnect ===== */
@@ -669,9 +732,10 @@ body {
     border: 1px solid transparent;
     color: var(--text);
     font-size: 13px;
-    padding: 2px 6px;
+    padding: 6px 8px;
     border-radius: 3px;
     width: 100%;
+    min-height: 40px;
 }
 
 .tool-label-input:focus {
@@ -692,7 +756,332 @@ body {
     gap: 4px;
 }
 
-/* ===== Responsive ===== */
+/* ===== ELS / Threading tab ===== */
+#tab-els {
+    flex-direction: column;
+    overflow-y: auto;
+    padding: 0;
+}
+
+.els-layout {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+}
+
+.els-select-panel {
+    flex: 1;
+    padding: 16px 20px;
+    overflow-y: auto;
+    border-right: 1px solid var(--card-border);
+}
+
+.els-control-panel {
+    width: 280px;
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    flex-shrink: 0;
+}
+
+.els-header h2 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-bright);
+    margin-bottom: 12px;
+}
+
+.els-type-tabs,
+.els-grade-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 12px;
+}
+
+.els-type-btn,
+.els-grade-btn {
+    flex: 1;
+    background: var(--btn);
+    color: var(--dim-light);
+    border: 1px solid var(--card-border);
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    min-height: 44px;
+}
+
+.els-type-btn.active,
+.els-grade-btn.active {
+    background: var(--accent);
+    color: var(--text-bright);
+    border-color: var(--accent);
+}
+
+.els-type-btn:hover,
+.els-grade-btn:hover {
+    background: var(--btn-hover);
+}
+
+.els-type-btn.active:hover,
+.els-grade-btn.active:hover {
+    background: var(--accent-dim);
+}
+
+.els-pitch-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 6px;
+    margin-bottom: 16px;
+}
+
+.els-pitch-btn {
+    background: var(--btn);
+    color: var(--text);
+    border: 1px solid var(--card-border);
+    border-radius: 4px;
+    padding: 10px 8px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    min-height: 52px;
+    transition: background 0.1s, border-color 0.1s;
+}
+
+.els-pitch-btn:hover {
+    background: var(--btn-hover);
+    border-color: var(--dim);
+}
+
+.els-pitch-btn.selected {
+    background: rgba(0, 120, 215, 0.15);
+    border-color: var(--accent);
+    color: var(--text-bright);
+}
+
+.pitch-label {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-bright);
+}
+
+.pitch-value {
+    font-size: 11px;
+    color: var(--dim-light);
+    font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', monospace;
+}
+
+.els-custom-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 0;
+    border-top: 1px solid var(--card-border);
+}
+
+.els-custom-label {
+    font-size: 12px;
+    color: var(--dim-light);
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.els-custom-input {
+    background: var(--bg);
+    color: var(--text-bright);
+    border: 1px solid var(--card-border);
+    border-radius: 4px;
+    padding: 8px 10px;
+    font-size: 14px;
+    font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', monospace;
+    width: 100px;
+    text-align: right;
+    outline: none;
+    min-height: 44px;
+}
+
+.els-custom-input:focus {
+    border-color: var(--accent);
+}
+
+.els-custom-unit {
+    font-size: 12px;
+    color: var(--dim);
+    font-weight: 600;
+}
+
+.els-control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.els-control-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--dim);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+}
+
+.els-btn-group {
+    display: flex;
+    gap: 4px;
+}
+
+.els-btn-group .btn {
+    flex: 1;
+    min-height: 44px;
+}
+
+.els-dir-btn.active,
+.els-retract-btn.active {
+    background: var(--accent);
+    color: var(--text-bright);
+    border-color: var(--accent);
+}
+
+.els-state-badge {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 8px 12px;
+    border-radius: 4px;
+    text-align: center;
+    border: 1px solid var(--card-border);
+    background: var(--btn);
+    color: var(--dim-light);
+}
+
+.els-state-disengaged {
+    color: var(--dim-light);
+    border-color: var(--card-border);
+}
+
+.els-state-engaged {
+    color: #00CC66;
+    border-color: #00CC66;
+    background: rgba(0, 204, 102, 0.1);
+}
+
+.els-state-holding {
+    color: #FFAA00;
+    border-color: #FFAA00;
+    background: rgba(255, 170, 0, 0.1);
+}
+
+.els-state-alarm {
+    color: var(--alarm);
+    border-color: var(--alarm);
+    background: #2D1A1E;
+}
+
+.els-live-display {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 10px 0;
+    border-top: 1px solid var(--card-border);
+    border-bottom: 1px solid var(--card-border);
+}
+
+.els-live-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.els-live-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--dim);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.els-live-value {
+    font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', monospace;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-bright);
+}
+
+.els-action-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: auto;
+}
+
+.els-engage-btn {
+    background: #00662E;
+    color: #00CC66;
+    border-color: #00CC66;
+    font-size: 18px;
+    font-weight: 800;
+    padding: 16px;
+    min-height: 56px;
+    letter-spacing: 2px;
+}
+
+.els-engage-btn:hover {
+    background: #008038;
+}
+
+.els-engage-btn.engaged {
+    background: #662200;
+    color: #FF6600;
+    border-color: #FF6600;
+}
+
+.els-engage-btn.engaged:hover {
+    background: #802A00;
+}
+
+.els-engage-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.els-hold-btn {
+    background: rgba(255, 170, 0, 0.15);
+    color: #FFAA00;
+    border-color: #FFAA00;
+    font-size: 14px;
+    font-weight: 700;
+    padding: 12px;
+    min-height: 48px;
+}
+
+.els-hold-btn:hover {
+    background: rgba(255, 170, 0, 0.25);
+}
+
+/* ===== Responsive: tablet (≤1280px) ===== */
+@media (max-width: 1280px) {
+    .els-control-panel {
+        width: 240px;
+        padding: 12px 16px;
+        gap: 12px;
+    }
+
+    .els-pitch-grid {
+        grid-template-columns: repeat(auto-fill, minmax(95px, 1fr));
+    }
+
+    #config-categories {
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    }
+}
+
+/* ===== Responsive: small screens (≤768px) ===== */
 @media (max-width: 768px) {
     #toolbar-left {
         width: 44px;
@@ -717,5 +1106,18 @@ body {
 
     .sb-rpm {
         font-size: 22px;
+    }
+
+    .els-layout {
+        flex-direction: column;
+    }
+
+    .els-select-panel {
+        border-right: none;
+        border-bottom: 1px solid var(--card-border);
+    }
+
+    .els-control-panel {
+        width: 100%;
     }
 }

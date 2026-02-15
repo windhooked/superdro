@@ -32,15 +32,25 @@ type Manager struct {
 	port      serial.Port
 	mu        sync.Mutex
 	connected bool
+
+	// Sim ELS state (protected by mu)
+	simPitch       float64
+	simDir         string
+	simRetractMode string
+	simPass        int
+	simEngaged     bool
 }
 
 // NewManager creates a new serial manager.
 func NewManager(cfg Config, logger *zap.Logger) *Manager {
 	return &Manager{
-		cfg:       cfg,
-		logger:    logger.Named("serial"),
-		statusCh:  make(chan json.RawMessage, 64),
-		commandCh: make(chan json.RawMessage, 32),
+		cfg:            cfg,
+		logger:         logger.Named("serial"),
+		statusCh:       make(chan json.RawMessage, 64),
+		commandCh:      make(chan json.RawMessage, 32),
+		simPitch:       1.5,
+		simDir:         "rh",
+		simRetractMode: "rapid",
 	}
 }
 
@@ -54,10 +64,17 @@ func (m *Manager) CommandCh() chan<- json.RawMessage {
 	return m.commandCh
 }
 
-// Send writes a command to the serial port.
+// Send writes a command to the serial port (or routes to sim handler).
 func (m *Manager) Send(cmd json.RawMessage) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	if m.cfg.Simulate {
+		select {
+		case m.commandCh <- cmd:
+		default:
+		}
+		return
+	}
 	if m.port == nil {
 		return
 	}
@@ -294,14 +311,36 @@ func (m *Manager) runSimulated(ctx context.Context) {
 		ticker := time.NewTicker(20 * time.Millisecond)
 		defer ticker.Stop()
 		t := 0.0
+		passTimer := 0.0
 		for {
 			select {
 			case <-ticker.C:
 				t += 0.02
+
+				m.mu.Lock()
+				engaged := m.simEngaged
+				pitch := m.simPitch
+				dir := m.simDir
+				retract := m.simRetractMode
+				pass := m.simPass
+				m.mu.Unlock()
+
 				state := "idle"
-				// Occasionally flash alarm for 2 seconds every 30 seconds
-				if math.Mod(t, 30.0) > 28.0 {
-					state = "alarm"
+				if engaged {
+					state = "threading"
+					passTimer += 0.02
+					if passTimer >= 5.0 {
+						passTimer = 0
+						m.mu.Lock()
+						m.simPass++
+						m.mu.Unlock()
+						pass = m.simPass
+					}
+				} else {
+					passTimer = 0
+					if math.Mod(t, 30.0) > 28.0 {
+						state = "alarm"
+					}
 				}
 
 				status := map[string]interface{}{
@@ -312,6 +351,12 @@ func (m *Manager) runSimulated(ctx context.Context) {
 					"rpm":   math.Max(0, 800.0+200.0*math.Sin(t*0.1)+50.0*rand.Float64()),
 					"state": state,
 					"fh":    false,
+				}
+				if engaged {
+					status["pitch"] = pitch
+					status["dir"] = dir
+					status["pass"] = pass
+					status["retract"] = retract
 				}
 				data, _ := json.Marshal(status)
 				select {
@@ -416,6 +461,61 @@ func (m *Manager) handleSimCommand(cmd json.RawMessage) {
 				"thread_retract_x_mm":    1.0,
 				"thread_compound_angle":  29.0,
 			},
+		})
+	case "set_pitch":
+		var full struct {
+			Pitch float64 `json:"pitch"`
+			Dir   string  `json:"dir"`
+		}
+		json.Unmarshal(cmd, &full)
+		m.mu.Lock()
+		if full.Pitch > 0 {
+			m.simPitch = full.Pitch
+		}
+		if full.Dir == "rh" || full.Dir == "lh" {
+			m.simDir = full.Dir
+		}
+		m.mu.Unlock()
+		ack, _ = json.Marshal(map[string]interface{}{
+			"ack": "set_pitch",
+			"ok":  true,
+		})
+	case "set_retract":
+		var full struct {
+			Mode string `json:"mode"`
+		}
+		json.Unmarshal(cmd, &full)
+		m.mu.Lock()
+		if full.Mode == "rapid" || full.Mode == "spring" {
+			m.simRetractMode = full.Mode
+		}
+		m.mu.Unlock()
+		ack, _ = json.Marshal(map[string]interface{}{
+			"ack": "set_retract",
+			"ok":  true,
+		})
+	case "engage":
+		m.mu.Lock()
+		m.simEngaged = true
+		m.simPass = 1
+		m.mu.Unlock()
+		ack, _ = json.Marshal(map[string]interface{}{
+			"ack": "engage",
+			"ok":  true,
+		})
+	case "disengage":
+		m.mu.Lock()
+		m.simEngaged = false
+		m.simPass = 0
+		m.mu.Unlock()
+		ack, _ = json.Marshal(map[string]interface{}{
+			"ack": "disengage",
+			"ok":  true,
+		})
+	case "feed_hold":
+		ack, _ = json.Marshal(map[string]interface{}{
+			"ack": "feed_hold",
+			"ok":  true,
 		})
 	default:
 		ack, _ = json.Marshal(map[string]interface{}{
