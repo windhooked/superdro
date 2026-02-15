@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include "encoder.h"
 #include "config.h"
 #include "pins.h"
