@@ -1,61 +1,30 @@
 ; quadrature.pio — 4x quadrature decoder
-; Decodes A/B encoder signals into a signed 32-bit counter.
-; Used for spindle encoder (PIO 0, SM 0), X-axis scale (PIO 0, SM 1), and Z-axis scale (PIO 0, SM 2).
+; Decodes A/B encoder signals, pushing state transitions to FIFO.
+; C helper drains FIFO and applies LUT for signed count accumulation.
+;
+; Used for spindle encoder (PIO 0, SM 0), X-axis scale (PIO 0, SM 1),
+; and Z-axis scale (PIO 0, SM 2).
 ;
 ; Pin mapping: base_pin = A, base_pin+1 = B
-; Counter stored in X register.
-; Read counter by executing: mov isr, x ; push
-;
-; Handles signal rates up to several MHz (well above 233 kHz requirement).
+; Only pushes to FIFO when pin state changes (edge detection).
+; Handles signal rates up to ~14 MHz (well above any encoder requirement).
 
 .program quadrature
 
-    ; Initialize X (counter) to 0
-    set x, 0
-
-    ; Read initial pin state into OSR for comparison
-    in pins, 2
-    mov osr, isr
-
-.wrap_target
-    ; Read current A/B state
+    ; Initialize: read initial pin state into Y (previous state)
     in pins, 2
     mov y, isr
 
-    ; Compare with previous state (in OSR)
-    jmp x!=y, changed
-    jmp same
+.wrap_target
+    mov isr, null         ; clear ISR for clean read
+    in pins, 2            ; read A,B into ISR[1:0]
+    mov x, isr            ; X = current 2-bit state
+    jmp x!=y, changed     ; compare current (X) vs previous (Y)
+    jmp done              ; no change — skip push
 changed:
-    ; XOR-like decoding using lookup:
-    ; Previous state in OSR, current in Y
-    ; We decode direction from the 4-bit {old_A, old_B, new_A, new_B} transition
-
-    ; Save new state as previous for next iteration
-    mov osr, y
-
-    ; Simplified 4x decode: use the state transition table
-    ; For a proper 4x decode we need to compare old and new states
-    ; Using a compact approach: check if forward or reverse transition
-
-    ; Read old state back — we need both old and new
-    ; The state transition for quadrature:
-    ;   Forward (CW):  00->01->11->10->00
-    ;   Reverse (CCW): 00->10->11->01->00
-
-    ; We use a trick: XOR old_A with new_B gives direction
-    ; If (old_A XOR new_B) = 0 → forward, increment
-    ; If (old_A XOR new_B) = 1 → reverse, decrement
-
-    ; For simplicity in PIO, we push the raw transitions and let
-    ; the C helper decode direction. This avoids complex PIO logic.
-
-    ; Push current 2-bit state (autopush will send to FIFO)
-    push noblock
-
-    jmp update_done
-same:
-    mov osr, y          ; update previous state even if unchanged
-update_done:
+    push noblock          ; send new state to FIFO (also clears ISR)
+done:
+    mov y, x              ; update previous state
 .wrap
 
 % c-sdk {
@@ -69,10 +38,11 @@ static inline void quadrature_program_init(PIO pio, uint sm, uint offset, uint b
     pio_sm_config c = quadrature_program_get_default_config(offset);
     sm_config_set_in_pins(&c, base_pin);
 
-    // Shift ISR to the right, autopush disabled (we push manually)
+    // Shift ISR left, no autopush, 32-bit threshold
+    // After mov isr, null + in pins, 2: ISR = pin_state in bits [1:0]
     sm_config_set_in_shift(&c, false, false, 32);
 
-    // Set clock divider — run fast for high resolution
+    // Run at full system clock for maximum resolution
     sm_config_set_clkdiv(&c, 1.0f);
 
     // Enable input pin pull-ups
@@ -85,15 +55,14 @@ static inline void quadrature_program_init(PIO pio, uint sm, uint offset, uint b
     pio_sm_set_enabled(pio, sm, true);
 }
 
-// Read the accumulated count from the PIO state machine
-// This drains the FIFO and decodes transitions into a count
-static int32_t s_counts[4] = {0}; // per-SM counters (indexed by SM number)
+// Per-SM counters and previous state tracking
+static int32_t s_counts[4] = {0};
 static uint8_t s_prev_state[4] = {0};
 
-// Lookup table: [prev_state][new_state] → delta (-1, 0, +1)
-// Indexed by binary pin value {B,A}: 0b00=0, 0b01=1, 0b10=2, 0b11=3
-// Forward (CW):  00→01→11→10  i.e. index 0→1→3→2
-// Reverse (CCW): 00→10→11→01  i.e. index 0→2→3→1
+// 4x decode lookup table: [prev_state][new_state] → delta (-1, 0, +1)
+// Indexed by 2-bit pin value {B,A}: 00=0, 01=1, 10=2, 11=3
+// Forward (CW):  00→01→11→10→00  (index 0→1→3→2)
+// Reverse (CCW): 00→10→11→01→00  (index 0→2→3→1)
 static const int8_t quad_lut[4][4] = {
     //          new: 00  01  10  11
     /* 00 */       { 0, +1, -1,  0},
@@ -103,7 +72,7 @@ static const int8_t quad_lut[4][4] = {
 };
 
 static inline int32_t quadrature_get_count(PIO pio, uint sm) {
-    // Drain FIFO and accumulate
+    // Drain FIFO and accumulate deltas via LUT
     while (!pio_sm_is_rx_fifo_empty(pio, sm)) {
         uint32_t raw = pio_sm_get(pio, sm);
         uint8_t new_state = raw & 0x03;

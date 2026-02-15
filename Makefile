@@ -3,7 +3,7 @@
        firmware-test firmware-test-e2e firmware-build firmware-clean \
        android-test android-build android-clean \
        webapp-build webapp-run webapp-run-sim webapp-clean \
-       docker-firmware docker-android
+       container-firmware container-android
 
 PICO_SDK_DIR ?= $(HOME)/pico-sdk
 
@@ -15,9 +15,10 @@ help: ## Show available targets
 
 deps: deps-firmware deps-webapp ## Install all development dependencies
 
-deps-firmware: ## Install firmware toolchain (macOS: brew, Linux: apt)
+deps-firmware: ## Install firmware toolchain (macOS: brew cask, Linux: apt)
 ifeq ($(shell uname),Darwin)
-	brew install cmake arm-none-eabi-gcc
+	brew install cmake
+	brew install --cask gcc-arm-embedded
 else
 	sudo apt-get update && sudo apt-get install -y \
 		build-essential cmake gcc-arm-none-eabi libnewlib-arm-none-eabi python3
@@ -90,10 +91,19 @@ webapp-run: webapp-build ## Run webapp with auto-detected serial port
 webapp-clean: ## Clean webapp binary
 	rm -f webapp/superdro-web
 
-# ===== Docker =====
+# ===== Container Build =====
 
-docker-firmware: ## Build firmware via Docker (no local toolchain needed)
-	docker build -f Dockerfile.firmware -t superdro-firmware .
+CONTAINER_ENGINE ?= podman
 
-docker-android: ## Build Android app via Docker
-	docker build -f Dockerfile.android -t superdro-android .
+container-firmware: ## Build firmware in container, copy .uf2 to firmware/build/
+	$(CONTAINER_ENGINE) build -f Dockerfile.firmware -t superdro-firmware .
+	mkdir -p firmware/build
+	$(CONTAINER_ENGINE) create --name superdro-fw-tmp superdro-firmware true 2>/dev/null || \
+		($(CONTAINER_ENGINE) rm superdro-fw-tmp && $(CONTAINER_ENGINE) create --name superdro-fw-tmp superdro-firmware true)
+	$(CONTAINER_ENGINE) cp superdro-fw-tmp:/superdro.uf2 firmware/build/superdro.uf2
+	$(CONTAINER_ENGINE) rm superdro-fw-tmp
+	@echo ""
+	@echo "Firmware built: firmware/build/superdro.uf2"
+
+container-android: ## Build Android app in container
+	$(CONTAINER_ENGINE) build -f Dockerfile.android -t superdro-android .

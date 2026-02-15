@@ -19,9 +19,8 @@ add_executable(superdro
 # PIO programs
 pico_generate_pio_header(superdro ${CMAKE_CURRENT_LIST_DIR}/pio/quadrature.pio)
 
-# Target Pico W
+# Pico W compile definitions (PICO_BOARD is set by cmake -DPICO_BOARD=pico_w)
 target_compile_definitions(superdro PRIVATE
-    PICO_BOARD=pico_w
     CYW43_HOST_NAME="SuperDRO"
 )
 

@@ -5,7 +5,7 @@
 #include <stdbool.h>
 
 typedef struct pio_hw {} *PIO;
-static struct pio_hw _pio0_hw, _pio1_hw;
+__attribute__((unused)) static struct pio_hw _pio0_hw, _pio1_hw;
 #define pio0 (&_pio0_hw)
 #define pio1 (&_pio1_hw)
 
