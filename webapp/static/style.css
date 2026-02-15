@@ -1064,6 +1064,163 @@ body {
     background: rgba(255, 170, 0, 0.25);
 }
 
+/* ===== ELS Depth Scheduling ===== */
+.els-depth-section {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--card-border);
+}
+
+.els-depth-header h3 {
+    font-size: 10px;
+    color: var(--dim);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    font-weight: 700;
+    margin-bottom: 10px;
+}
+
+.els-form-btn.active {
+    background: var(--accent);
+    color: var(--text-bright);
+    border-color: var(--accent);
+}
+
+.els-depth-params {
+    display: flex;
+    gap: 12px;
+    margin: 12px 0;
+    align-items: flex-end;
+}
+
+.els-depth-param {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.els-depth-param-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--dim);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.els-depth-input {
+    background: var(--bg);
+    color: var(--text-bright);
+    border: 1px solid var(--card-border);
+    border-radius: 4px;
+    padding: 8px 10px;
+    font-size: 14px;
+    font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', monospace;
+    width: 100px;
+    text-align: right;
+    outline: none;
+    min-height: 44px;
+}
+
+.els-depth-input:focus {
+    border-color: var(--accent);
+}
+
+.els-depth-param-value {
+    font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', monospace;
+    font-size: 14px;
+    color: var(--dim-light);
+    padding: 8px 10px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+}
+
+.els-pass-table-wrap {
+    max-height: 240px;
+    overflow-y: auto;
+    border: 1px solid var(--card-border);
+    border-radius: 4px;
+    margin-top: 8px;
+}
+
+.els-pass-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+
+.els-pass-table thead {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.els-pass-table th {
+    font-size: 10px;
+    color: var(--dim);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 700;
+    text-align: right;
+    padding: 6px 8px;
+    background: var(--toolbar-bg);
+    border-bottom: 1px solid var(--card-border);
+}
+
+.els-pass-table th:first-child {
+    text-align: center;
+    width: 50px;
+}
+
+.els-pass-table th:last-child {
+    text-align: center;
+    width: 50px;
+}
+
+.els-pass-table td {
+    padding: 5px 8px;
+    font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', monospace;
+    color: var(--text);
+    text-align: right;
+    border-bottom: 1px solid var(--card-border);
+}
+
+.pass-num {
+    text-align: center !important;
+    font-weight: 700;
+    color: var(--dim-light);
+}
+
+.pass-type {
+    text-align: center !important;
+    font-weight: 700;
+    font-size: 10px;
+    letter-spacing: 0.5px;
+}
+
+.pass-row.pass-spring td {
+    color: var(--dim);
+    font-style: italic;
+}
+
+.pass-row.pass-current {
+    background: rgba(0, 120, 215, 0.15);
+}
+
+.pass-row.pass-current td {
+    color: var(--text-bright);
+}
+
+.pass-row.pass-current .pass-num {
+    color: var(--accent);
+}
+
+.pass-row.pass-completed td {
+    color: var(--dim);
+    text-decoration: line-through;
+    text-decoration-color: var(--dim);
+}
+
 /* ===== Responsive: tablet (≤1280px) ===== */
 @media (max-width: 1280px) {
     .els-control-panel {
@@ -1078,6 +1235,14 @@ body {
 
     #config-categories {
         grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    }
+
+    .els-depth-params {
+        gap: 8px;
+    }
+
+    .els-depth-input {
+        width: 80px;
     }
 }
 
@@ -1119,5 +1284,9 @@ body {
 
     .els-control-panel {
         width: 100%;
+    }
+
+    .els-depth-params {
+        flex-wrap: wrap;
     }
 }

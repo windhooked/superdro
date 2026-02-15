@@ -25,11 +25,21 @@ const state = {
     elsThreadType: 'metric',    // 'metric' | 'imperial'
     elsGrade: 'coarse',         // 'coarse' | 'fine'
     elsPitch: null,             // mm (always stored as mm internally)
+    elsSelectedLabel: null,     // label of selected thread button (for unique highlight)
     elsDir: 'rh',               // 'rh' | 'lh'
     elsRetract: 'rapid',        // 'rapid' | 'spring'
     elsEngaged: false,
     elsPass: 0,
     elsState: 'DISENGAGED',     // 'DISENGAGED' | 'ENGAGED' | 'HOLDING' | 'ALARM'
+    // ELS depth scheduling
+    elsThreadForm: 'external',    // 'external' | 'internal'
+    elsDepthMm: null,             // total thread depth (auto-calculated, overridable)
+    elsDepthOverridden: false,    // true if user manually edited depth
+    elsNumPasses: null,           // cutting passes (auto-suggested, overridable)
+    elsSpringPasses: 1,           // spring passes (default 1)
+    elsCompoundAngle: 29.5,       // degrees, from config when available
+    elsPassSchedule: [],          // [{pass, cumDepth, doc, xCumDepth, xDoc, type}]
+    elsCurrentTargetDepth: 0,     // current X target from backend
 };
 
 let activeAxisTimer = null;
@@ -99,6 +109,81 @@ function tpiToMmPitch(tpi) {
     return 25.4 / tpi;
 }
 
+// --- Thread depth calculation ---
+
+function calcThreadDepth(pitchMm, form) {
+    if (form === 'internal') return 0.5413 * pitchMm;
+    return 0.6134 * pitchMm;
+}
+
+function suggestNumPasses(depthMm) {
+    if (depthMm <= 0.3) return 3;
+    if (depthMm <= 0.6) return 4;
+    if (depthMm <= 1.0) return 5;
+    if (depthMm <= 1.5) return 6;
+    if (depthMm <= 2.0) return 7;
+    return 8;
+}
+
+function round4(v) {
+    return Math.round(v * 10000) / 10000;
+}
+
+function buildPassSchedule(totalDepth, numPasses, springPasses, compoundAngleDeg) {
+    const schedule = [];
+    const N = numPasses;
+    const cosAngle = Math.cos(compoundAngleDeg * Math.PI / 180);
+
+    for (let n = 1; n <= N; n++) {
+        const cumDepth = totalDepth * Math.sqrt(n / N);
+        const prevCum = n > 1 ? totalDepth * Math.sqrt((n - 1) / N) : 0;
+        const doc = cumDepth - prevCum;
+        schedule.push({
+            pass: n,
+            cumDepth: round4(cumDepth),
+            doc: round4(doc),
+            xCumDepth: round4(cumDepth / cosAngle),
+            xDoc: round4(doc / cosAngle),
+            type: 'cut',
+        });
+    }
+
+    for (let s = 0; s < springPasses; s++) {
+        schedule.push({
+            pass: N + s + 1,
+            cumDepth: round4(totalDepth),
+            doc: 0,
+            xCumDepth: round4(totalDepth / cosAngle),
+            xDoc: 0,
+            type: 'spring',
+        });
+    }
+
+    return schedule;
+}
+
+function recalcDepthSchedule() {
+    if (state.elsPitch === null || state.elsPitch <= 0) {
+        state.elsPassSchedule = [];
+        return;
+    }
+    if (!state.elsDepthOverridden) {
+        state.elsDepthMm = calcThreadDepth(state.elsPitch, state.elsThreadForm);
+    }
+    if (state.elsNumPasses === null) {
+        state.elsNumPasses = suggestNumPasses(state.elsDepthMm);
+    }
+    if (state.configValues.thread_compound_angle !== undefined) {
+        state.elsCompoundAngle = Number(state.configValues.thread_compound_angle);
+    }
+    state.elsPassSchedule = buildPassSchedule(
+        state.elsDepthMm,
+        state.elsNumPasses,
+        state.elsSpringPasses,
+        state.elsCompoundAngle
+    );
+}
+
 // --- WebSocket ---
 let ws = null;
 let reconnectTimer = null;
@@ -166,6 +251,10 @@ function handleStatus(msg) {
         state.elsPass = msg.pass || 0;
         state.elsRetract = msg.retract || 'rapid';
     }
+    if (msg.target_depth !== undefined) {
+        state.elsCurrentTargetDepth = msg.target_depth;
+    }
+    state.elsCurrentPass = msg.pass || 0;
 
     // Derive ELS state from machine state
     if (state.machineState === 'threading') {
@@ -817,9 +906,13 @@ function switchElsGrade(grade) {
     renderElsTab();
 }
 
-function selectThreadPitch(pitchMm) {
+function selectThreadPitch(pitchMm, label) {
     state.elsPitch = pitchMm;
+    state.elsSelectedLabel = label;
+    state.elsDepthOverridden = false;
+    state.elsNumPasses = null;
     sendCommand({ cmd: 'set_pitch', pitch: pitchMm, dir: state.elsDir });
+    recalcDepthSchedule();
     renderElsTab();
 }
 
@@ -831,7 +924,11 @@ function setCustomPitch() {
         val = tpiToMmPitch(val);
     }
     state.elsPitch = val;
+    state.elsSelectedLabel = null;
+    state.elsDepthOverridden = false;
+    state.elsNumPasses = null;
     sendCommand({ cmd: 'set_pitch', pitch: val, dir: state.elsDir });
+    recalcDepthSchedule();
     renderElsTab();
 }
 
@@ -851,7 +948,14 @@ function setElsRetract(mode) {
 
 function elsEngage() {
     if (state.elsPitch === null || state.elsPitch <= 0) return;
-    sendCommand({ cmd: 'engage' });
+    if (state.elsPassSchedule.length === 0) recalcDepthSchedule();
+    sendCommand({
+        cmd: 'engage',
+        schedule: state.elsPassSchedule,
+        depth: state.elsDepthMm,
+        compound_angle: state.elsCompoundAngle,
+        thread_form: state.elsThreadForm,
+    });
 }
 
 function elsDisengage() {
@@ -873,7 +977,8 @@ function renderElsTab() {
         const btn = document.createElement('button');
         const pitchMm = thread.pitch !== undefined ? thread.pitch : tpiToMmPitch(thread.tpi);
         const isSelected = state.elsPitch !== null &&
-            Math.abs(state.elsPitch - pitchMm) < 0.001;
+            Math.abs(state.elsPitch - pitchMm) < 0.001 &&
+            (state.elsSelectedLabel === null || state.elsSelectedLabel === thread.label);
 
         btn.className = 'els-pitch-btn' + (isSelected ? ' selected' : '');
 
@@ -885,7 +990,7 @@ function renderElsTab() {
                             `<span class="pitch-value">${thread.tpi} TPI</span>`;
         }
 
-        btn.onclick = () => selectThreadPitch(pitchMm);
+        btn.onclick = () => selectThreadPitch(pitchMm, thread.label);
         container.appendChild(btn);
     }
 
@@ -924,6 +1029,8 @@ function renderElsTab() {
             engageBtn.disabled = state.elsPitch === null;
         }
     }
+
+    renderDepthSchedule();
 }
 
 function updateELSDisplay() {
@@ -957,6 +1064,152 @@ function updateELSDisplay() {
 
     const zEl = document.getElementById('els-live-z');
     if (zEl) zEl.textContent = formatValue(displayZ(state.zPosMm));
+
+    const depthEl = document.getElementById('els-live-depth');
+    if (depthEl) {
+        if (state.elsCurrentTargetDepth > 0) {
+            depthEl.textContent = state.elsCurrentTargetDepth.toFixed(3) + ' mm';
+        } else {
+            depthEl.textContent = '---';
+        }
+    }
+
+    highlightCurrentPass();
+
+    // Update engage/disengage button to reflect current state
+    const engageBtn = document.getElementById('els-engage-btn');
+    if (engageBtn) {
+        if (state.elsEngaged) {
+            engageBtn.textContent = 'DISENGAGE';
+            engageBtn.className = 'btn els-engage-btn engaged';
+            engageBtn.onclick = elsDisengage;
+            engageBtn.disabled = false;
+        } else {
+            engageBtn.textContent = 'ENGAGE';
+            engageBtn.className = 'btn els-engage-btn';
+            engageBtn.onclick = elsEngage;
+            engageBtn.disabled = state.elsPitch === null;
+        }
+    }
+}
+
+// --- ELS depth scheduling ---
+
+function setElsThreadForm(form) {
+    state.elsThreadForm = form;
+    state.elsDepthOverridden = false;
+    state.elsNumPasses = null;
+    recalcDepthSchedule();
+    renderDepthSchedule();
+}
+
+function setElsDepth() {
+    const input = document.getElementById('els-depth-input');
+    const val = parseFloat(input.value);
+    if (isNaN(val) || val <= 0) return;
+    state.elsDepthMm = val;
+    state.elsDepthOverridden = true;
+    state.elsNumPasses = null;
+    recalcDepthSchedule();
+    renderDepthSchedule();
+}
+
+function setElsPassCount() {
+    const input = document.getElementById('els-pass-count-input');
+    const val = parseInt(input.value);
+    if (isNaN(val) || val < 1 || val > 50) return;
+    state.elsNumPasses = val;
+    recalcDepthSchedule();
+    renderDepthSchedule();
+}
+
+function setElsSpringPasses() {
+    const input = document.getElementById('els-spring-count-input');
+    const val = parseInt(input.value);
+    if (isNaN(val) || val < 0 || val > 5) return;
+    state.elsSpringPasses = val;
+    recalcDepthSchedule();
+    renderDepthSchedule();
+}
+
+function renderDepthSchedule() {
+    const container = document.getElementById('els-depth-section');
+    if (!container) return;
+
+    if (state.elsPitch === null || state.elsPitch <= 0) {
+        container.classList.add('hidden');
+        return;
+    }
+    container.classList.remove('hidden');
+
+    // Thread form buttons
+    document.querySelectorAll('.els-form-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.form === state.elsThreadForm);
+    });
+
+    // Depth input
+    const depthInput = document.getElementById('els-depth-input');
+    if (depthInput && document.activeElement !== depthInput) {
+        depthInput.value = state.elsDepthMm !== null ? state.elsDepthMm.toFixed(3) : '';
+    }
+
+    // Pass count input
+    const passInput = document.getElementById('els-pass-count-input');
+    if (passInput && document.activeElement !== passInput) {
+        passInput.value = state.elsNumPasses || '';
+    }
+
+    // Spring passes input
+    const springInput = document.getElementById('els-spring-count-input');
+    if (springInput && document.activeElement !== springInput) {
+        springInput.value = state.elsSpringPasses;
+    }
+
+    // Compound angle display
+    const angleEl = document.getElementById('els-compound-angle');
+    if (angleEl) {
+        angleEl.textContent = state.elsCompoundAngle.toFixed(1) + '\u00B0';
+    }
+
+    renderPassTable();
+}
+
+function renderPassTable() {
+    const tbody = document.getElementById('els-pass-table-body');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    for (const row of state.elsPassSchedule) {
+        const tr = document.createElement('tr');
+        const isCurrent = state.elsEngaged && row.pass === state.elsCurrentPass;
+        const isCompleted = state.elsEngaged && row.pass < state.elsCurrentPass;
+
+        tr.className = 'pass-row';
+        if (isCurrent) tr.className += ' pass-current';
+        if (isCompleted) tr.className += ' pass-completed';
+        if (row.type === 'spring') tr.className += ' pass-spring';
+
+        tr.innerHTML = `
+            <td class="pass-num">${row.pass}</td>
+            <td class="pass-doc">${row.doc > 0 ? row.doc.toFixed(3) : '---'}</td>
+            <td class="pass-cum">${row.cumDepth.toFixed(3)}</td>
+            <td class="pass-x-doc">${row.xDoc > 0 ? row.xDoc.toFixed(3) : '---'}</td>
+            <td class="pass-x-cum">${row.xCumDepth.toFixed(3)}</td>
+            <td class="pass-type">${row.type === 'spring' ? 'SPR' : 'CUT'}</td>
+        `;
+        tbody.appendChild(tr);
+    }
+}
+
+function highlightCurrentPass() {
+    const rows = document.querySelectorAll('.pass-row');
+    rows.forEach(row => {
+        const numEl = row.querySelector('.pass-num');
+        if (!numEl) return;
+        const passNum = parseInt(numEl.textContent);
+        row.classList.toggle('pass-current', state.elsEngaged && passNum === state.elsCurrentPass);
+        row.classList.toggle('pass-completed', state.elsEngaged && passNum < state.elsCurrentPass);
+    });
 }
 
 // --- Reconnect ---

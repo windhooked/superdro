@@ -136,6 +136,67 @@
                         <span class="els-custom-unit" id="els-custom-unit">mm</span>
                         <button class="btn btn-small" onclick="setCustomPitch()">SET</button>
                     </div>
+
+                    <!-- Depth Scheduling Section -->
+                    <div id="els-depth-section" class="els-depth-section hidden">
+                        <div class="els-depth-header">
+                            <h3>Depth Schedule</h3>
+                        </div>
+
+                        <!-- Internal/External toggle -->
+                        <div class="els-control-group">
+                            <div class="els-control-label">THREAD FORM</div>
+                            <div class="els-btn-group">
+                                <button class="btn els-form-btn active" data-form="external"
+                                        onclick="setElsThreadForm('external')">EXTERNAL</button>
+                                <button class="btn els-form-btn" data-form="internal"
+                                        onclick="setElsThreadForm('internal')">INTERNAL</button>
+                            </div>
+                        </div>
+
+                        <!-- Depth + Passes inputs row -->
+                        <div class="els-depth-params">
+                            <div class="els-depth-param">
+                                <label class="els-depth-param-label">DEPTH (mm)</label>
+                                <input type="number" id="els-depth-input" class="els-depth-input"
+                                       step="0.001" placeholder="auto"
+                                       onchange="setElsDepth()">
+                            </div>
+                            <div class="els-depth-param">
+                                <label class="els-depth-param-label">CUT PASSES</label>
+                                <input type="number" id="els-pass-count-input" class="els-depth-input"
+                                       step="1" min="1" max="50" placeholder="auto"
+                                       onchange="setElsPassCount()">
+                            </div>
+                            <div class="els-depth-param">
+                                <label class="els-depth-param-label">SPRING</label>
+                                <input type="number" id="els-spring-count-input" class="els-depth-input"
+                                       step="1" min="0" max="5" value="1"
+                                       onchange="setElsSpringPasses()">
+                            </div>
+                            <div class="els-depth-param">
+                                <label class="els-depth-param-label">COMPOUND</label>
+                                <span class="els-depth-param-value" id="els-compound-angle">29.5&deg;</span>
+                            </div>
+                        </div>
+
+                        <!-- Pass schedule table -->
+                        <div class="els-pass-table-wrap">
+                            <table class="els-pass-table">
+                                <thead>
+                                    <tr>
+                                        <th>Pass</th>
+                                        <th>DOC</th>
+                                        <th>Cum.</th>
+                                        <th>X DOC</th>
+                                        <th>X Cum.</th>
+                                        <th>Type</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="els-pass-table-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Right panel: controls + live display -->
@@ -189,6 +250,10 @@
                         <div class="els-live-row">
                             <span class="els-live-label">PASS</span>
                             <span class="els-live-value" id="els-live-pass">---</span>
+                        </div>
+                        <div class="els-live-row">
+                            <span class="els-live-label">X DEPTH</span>
+                            <span class="els-live-value" id="els-live-depth">---</span>
                         </div>
                     </div>
 

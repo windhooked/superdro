@@ -23,6 +23,13 @@ type Config struct {
 	Simulate bool
 }
 
+type simPassEntry struct {
+	Pass     int     `json:"pass"`
+	CumDepth float64 `json:"cumDepth"`
+	Doc      float64 `json:"doc"`
+	Type     string  `json:"type"`
+}
+
 // Manager handles serial port lifecycle, reading status and writing commands.
 type Manager struct {
 	cfg       Config
@@ -39,6 +46,9 @@ type Manager struct {
 	simRetractMode string
 	simPass        int
 	simEngaged     bool
+	simSchedule    []simPassEntry
+	simTotalPasses int
+	simTargetDepth float64
 }
 
 // NewManager creates a new serial manager.
@@ -323,6 +333,8 @@ func (m *Manager) runSimulated(ctx context.Context) {
 				dir := m.simDir
 				retract := m.simRetractMode
 				pass := m.simPass
+				targetDepth := m.simTargetDepth
+				totalPasses := m.simTotalPasses
 				m.mu.Unlock()
 
 				state := "idle"
@@ -333,8 +345,18 @@ func (m *Manager) runSimulated(ctx context.Context) {
 						passTimer = 0
 						m.mu.Lock()
 						m.simPass++
+						// Advance target depth from schedule
+						if m.simSchedule != nil && m.simPass <= m.simTotalPasses {
+							m.simTargetDepth = m.simSchedule[m.simPass-1].CumDepth
+						}
+						// Auto-disengage after all passes complete
+						if m.simSchedule != nil && m.simPass > m.simTotalPasses {
+							m.simEngaged = false
+							m.simPass = m.simTotalPasses
+						}
 						m.mu.Unlock()
 						pass = m.simPass
+						targetDepth = m.simTargetDepth
 					}
 				} else {
 					passTimer = 0
@@ -357,6 +379,8 @@ func (m *Manager) runSimulated(ctx context.Context) {
 					status["dir"] = dir
 					status["pass"] = pass
 					status["retract"] = retract
+					status["target_depth"] = targetDepth
+					status["total_passes"] = totalPasses
 				}
 				data, _ := json.Marshal(status)
 				select {
@@ -495,9 +519,23 @@ func (m *Manager) handleSimCommand(cmd json.RawMessage) {
 			"ok":  true,
 		})
 	case "engage":
+		var full struct {
+			Schedule []simPassEntry `json:"schedule"`
+			Depth    float64        `json:"depth"`
+		}
+		json.Unmarshal(cmd, &full)
 		m.mu.Lock()
 		m.simEngaged = true
 		m.simPass = 1
+		if len(full.Schedule) > 0 {
+			m.simSchedule = full.Schedule
+			m.simTotalPasses = len(full.Schedule)
+			m.simTargetDepth = full.Schedule[0].CumDepth
+		} else {
+			m.simSchedule = nil
+			m.simTotalPasses = 0
+			m.simTargetDepth = 0
+		}
 		m.mu.Unlock()
 		ack, _ = json.Marshal(map[string]interface{}{
 			"ack": "engage",
@@ -507,6 +545,9 @@ func (m *Manager) handleSimCommand(cmd json.RawMessage) {
 		m.mu.Lock()
 		m.simEngaged = false
 		m.simPass = 0
+		m.simSchedule = nil
+		m.simTotalPasses = 0
+		m.simTargetDepth = 0
 		m.mu.Unlock()
 		ack, _ = json.Marshal(map[string]interface{}{
 			"ack": "disengage",
