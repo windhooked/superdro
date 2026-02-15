@@ -99,7 +99,7 @@ func (m *Manager) Run(ctx context.Context) {
 			m.logger.Warn("Serial session ended", zap.Error(err))
 		}
 
-		m.sendMeta(false)
+		m.sendMeta(false, "")
 
 		select {
 		case <-time.After(1 * time.Second):
@@ -150,7 +150,7 @@ func (m *Manager) openAndRun(ctx context.Context, portPath string) error {
 	m.mu.Unlock()
 
 	m.logger.Info("Serial port opened", zap.String("port", portPath))
-	m.sendMeta(true)
+	m.sendMeta(true, portPath)
 
 	defer func() {
 		m.mu.Lock()
@@ -262,10 +262,16 @@ func (m *Manager) openAndRun(ctx context.Context, portPath string) error {
 	}
 }
 
-func (m *Manager) sendMeta(connected bool) {
-	meta := fmt.Sprintf(`{"meta":"connected","serial":%t}`, connected)
+func (m *Manager) sendMeta(connected bool, port string) {
+	msg := map[string]interface{}{
+		"meta":   "connected",
+		"serial": connected,
+		"sim":    m.cfg.Simulate,
+		"port":   port,
+	}
+	data, _ := json.Marshal(msg)
 	select {
-	case m.statusCh <- json.RawMessage(meta):
+	case m.statusCh <- json.RawMessage(data):
 	default:
 	}
 }
@@ -279,7 +285,7 @@ func isACK(data []byte) bool {
 
 func (m *Manager) runSimulated(ctx context.Context) {
 	m.logger.Info("Simulated serial mode active")
-	m.sendMeta(true)
+	m.sendMeta(true, "simulated")
 
 	rawCh := make(chan json.RawMessage, 64)
 
@@ -362,7 +368,7 @@ func (m *Manager) handleSimCommand(cmd json.RawMessage) {
 
 	var ack json.RawMessage
 	switch parsed.Cmd {
-	case "zero", "preset", "config_save":
+	case "zero", "preset", "config_save", "config_set":
 		ack, _ = json.Marshal(map[string]interface{}{
 			"ack": parsed.Cmd,
 			"ok":  true,
@@ -385,14 +391,30 @@ func (m *Manager) handleSimCommand(cmd json.RawMessage) {
 			"ok":  true,
 			"params": map[string]interface{}{
 				"spindle_ppr":            1000,
+				"spindle_quadrature":     4,
+				"spindle_counts_per_rev": 4000,
 				"spindle_max_rpm":        3500,
 				"z_scale_resolution_mm":  0.005,
+				"z_travel_min_mm":        -300.0,
+				"z_travel_max_mm":        0.0,
 				"z_leadscrew_pitch_mm":   6.0,
 				"z_steps_per_rev":        1000,
 				"z_belt_ratio":           1.0,
 				"z_steps_per_mm":         166.667,
+				"z_max_speed_mm_s":       50.0,
+				"z_accel_mm_s2":          100.0,
+				"z_backlash_mm":          0.0,
 				"x_scale_resolution_mm":  0.005,
 				"x_is_diameter":          true,
+				"x_travel_min_mm":        -75.0,
+				"x_travel_max_mm":        0.0,
+				"x_steps_per_rev":        1000,
+				"x_leadscrew_pitch_mm":   3.0,
+				"x_belt_ratio":           1.0,
+				"x_steps_per_mm":         333.333,
+				"thread_retract_mode":    0,
+				"thread_retract_x_mm":    1.0,
+				"thread_compound_angle":  29.0,
 			},
 		})
 	default:
@@ -416,6 +438,8 @@ func (m *Manager) simConfigValue(key string) interface{} {
 		"spindle_counts_per_rev": 4000,
 		"spindle_max_rpm":        3500,
 		"z_scale_resolution_mm":  0.005,
+		"z_travel_min_mm":        -300.0,
+		"z_travel_max_mm":        0.0,
 		"z_leadscrew_pitch_mm":   6.0,
 		"z_steps_per_rev":        1000,
 		"z_belt_ratio":           1.0,
@@ -425,6 +449,15 @@ func (m *Manager) simConfigValue(key string) interface{} {
 		"z_backlash_mm":          0.0,
 		"x_scale_resolution_mm":  0.005,
 		"x_is_diameter":          true,
+		"x_travel_min_mm":        -75.0,
+		"x_travel_max_mm":        0.0,
+		"x_steps_per_rev":        1000,
+		"x_leadscrew_pitch_mm":   3.0,
+		"x_belt_ratio":           1.0,
+		"x_steps_per_mm":         333.333,
+		"thread_retract_mode":    0,
+		"thread_retract_x_mm":    1.0,
+		"thread_compound_angle":  29.0,
 	}
 	if v, ok := defaults[key]; ok {
 		return v

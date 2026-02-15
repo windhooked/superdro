@@ -558,6 +558,140 @@ body {
     border-color: #FFAA00;
 }
 
+#config-categories {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 0 24px;
+}
+
+/* ===== Mode badge & reconnect ===== */
+.mode-badge {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    text-transform: uppercase;
+}
+
+.mode-badge.sim {
+    color: #FFAA00;
+    border: 1px solid #FFAA00;
+}
+
+.mode-badge.live {
+    color: #00CC66;
+    border: 1px solid #00CC66;
+}
+
+.reconnect-btn {
+    background: none;
+    border: none;
+    color: var(--dim);
+    cursor: pointer;
+    font-size: 16px;
+    padding: 0 4px;
+    line-height: 1;
+}
+
+.reconnect-btn:hover {
+    color: var(--text-bright);
+}
+
+/* ===== Active tool indicator ===== */
+.active-tool {
+    font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', monospace;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--dim);
+    line-height: 1;
+}
+
+.active-tool.active {
+    color: var(--accent);
+}
+
+/* ===== Tool tab ===== */
+#tab-tool {
+    flex-direction: column;
+    overflow-y: auto;
+    padding: 16px 20px;
+}
+
+#tool-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+#tool-header h2 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-bright);
+}
+
+#tool-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+#tool-table th {
+    font-size: 10px;
+    color: var(--dim);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    font-weight: 700;
+    text-align: left;
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--card-border);
+}
+
+#tool-table td {
+    padding: 8px;
+    border-bottom: 1px solid var(--card-border);
+    font-size: 13px;
+}
+
+.tool-row.active {
+    background: rgba(0, 120, 215, 0.1);
+}
+
+.tool-num {
+    font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', monospace;
+    font-weight: 700;
+    color: var(--accent);
+    width: 50px;
+}
+
+.tool-label-input {
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--text);
+    font-size: 13px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    width: 100%;
+}
+
+.tool-label-input:focus {
+    border-color: var(--card-border);
+    background: var(--bg);
+    outline: none;
+}
+
+.tool-offset {
+    font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', monospace;
+    color: var(--text);
+    text-align: right;
+    width: 100px;
+}
+
+.tool-actions {
+    display: flex;
+    gap: 4px;
+}
+
 /* ===== Responsive ===== */
 @media (max-width: 768px) {
     #toolbar-left {

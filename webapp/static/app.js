@@ -11,9 +11,13 @@ const state = {
     xDisplayMode: 'diameter', // 'diameter' | 'radius'
     wsConnected: false,
     serialConnected: false,
+    simMode: false,
+    serialPort: '',
     configValues: {},
     configDirty: new Set(),
     savedPositions: [],       // [{label, x, z, unit, xMode}]
+    toolTable: [],            // [{number, label, xOffset, zOffset}]
+    activeTool: null,         // tool number or null
     activeAxis: null,         // 'x' | 'z' | null (for dynamic zoom)
     prevXPosMm: 0,
     prevZPosMm: 0,
@@ -130,6 +134,8 @@ function handleAck(msg) {
 function handleMeta(msg) {
     if (msg.meta === 'connected') {
         state.serialConnected = msg.serial;
+        state.simMode = !!msg.sim;
+        state.serialPort = msg.port || '';
         updateConnectionUI();
     }
 }
@@ -192,6 +198,7 @@ function updateDRO() {
 function updateConnectionUI() {
     const dot = document.getElementById('status-dot');
     const text = document.getElementById('status-text');
+    const badge = document.getElementById('mode-badge');
 
     if (!state.wsConnected) {
         dot.className = 'dot dot-red';
@@ -199,9 +206,25 @@ function updateConnectionUI() {
     } else if (!state.serialConnected) {
         dot.className = 'dot dot-yellow';
         text.textContent = 'No Serial';
+    } else if (state.simMode) {
+        dot.className = 'dot dot-green';
+        text.textContent = 'Simulated';
     } else {
         dot.className = 'dot dot-green';
-        text.textContent = 'Connected';
+        text.textContent = state.serialPort || 'Connected';
+    }
+
+    // Mode badge
+    if (badge) {
+        if (!state.wsConnected || !state.serialConnected) {
+            badge.className = 'mode-badge hidden';
+        } else if (state.simMode) {
+            badge.className = 'mode-badge sim';
+            badge.textContent = 'SIM';
+        } else {
+            badge.className = 'mode-badge live';
+            badge.textContent = 'LIVE';
+        }
     }
 }
 
@@ -282,25 +305,46 @@ function switchTab(tab) {
     if (tab === 'config' && Object.keys(state.configValues).length === 0) {
         loadConfig();
     }
+    // Render tool table when switching to tool tab
+    if (tab === 'tool') {
+        renderToolTable();
+    }
 }
 
 // --- Config page ---
 
 const CONFIG_PARAMS = [
+    // Spindle
     { key: 'spindle_ppr', label: 'Encoder PPR', category: 'Spindle' },
     { key: 'spindle_quadrature', label: 'Quadrature multiplier', category: 'Spindle' },
     { key: 'spindle_counts_per_rev', label: 'Counts/rev', category: 'Spindle', readOnly: true },
     { key: 'spindle_max_rpm', label: 'Max RPM', category: 'Spindle' },
-    { key: 'z_scale_resolution_mm', label: 'Scale resolution (mm)', category: 'Z Axis' },
-    { key: 'z_leadscrew_pitch_mm', label: 'Leadscrew pitch (mm)', category: 'Z Axis' },
-    { key: 'z_steps_per_rev', label: 'Steps/rev', category: 'Z Axis' },
-    { key: 'z_belt_ratio', label: 'Belt ratio', category: 'Z Axis' },
-    { key: 'z_steps_per_mm', label: 'Steps/mm', category: 'Z Axis', readOnly: true },
-    { key: 'z_max_speed_mm_s', label: 'Max speed (mm/s)', category: 'Z Axis' },
-    { key: 'z_accel_mm_s2', label: 'Acceleration (mm/s\u00B2)', category: 'Z Axis' },
-    { key: 'z_backlash_mm', label: 'Backlash (mm)', category: 'Z Axis' },
-    { key: 'x_scale_resolution_mm', label: 'Scale resolution (mm)', category: 'X Axis' },
-    { key: 'x_is_diameter', label: 'Diameter mode', category: 'X Axis' },
+    // Z Axis DRO
+    { key: 'z_scale_resolution_mm', label: 'Scale resolution (mm)', category: 'Z Axis DRO' },
+    { key: 'z_travel_min_mm', label: 'Travel min (mm)', category: 'Z Axis DRO' },
+    { key: 'z_travel_max_mm', label: 'Travel max (mm)', category: 'Z Axis DRO' },
+    // Z Axis ELS
+    { key: 'z_leadscrew_pitch_mm', label: 'Leadscrew pitch (mm)', category: 'Z Axis ELS' },
+    { key: 'z_steps_per_rev', label: 'Steps/rev', category: 'Z Axis ELS' },
+    { key: 'z_belt_ratio', label: 'Belt ratio', category: 'Z Axis ELS' },
+    { key: 'z_steps_per_mm', label: 'Steps/mm', category: 'Z Axis ELS', readOnly: true },
+    { key: 'z_max_speed_mm_s', label: 'Max speed (mm/s)', category: 'Z Axis ELS' },
+    { key: 'z_accel_mm_s2', label: 'Acceleration (mm/s\u00B2)', category: 'Z Axis ELS' },
+    { key: 'z_backlash_mm', label: 'Backlash (mm)', category: 'Z Axis ELS' },
+    // X Axis DRO
+    { key: 'x_scale_resolution_mm', label: 'Scale resolution (mm)', category: 'X Axis DRO' },
+    { key: 'x_is_diameter', label: 'Diameter mode', category: 'X Axis DRO' },
+    { key: 'x_travel_min_mm', label: 'Travel min (mm)', category: 'X Axis DRO' },
+    { key: 'x_travel_max_mm', label: 'Travel max (mm)', category: 'X Axis DRO' },
+    // X Axis ELS
+    { key: 'x_steps_per_rev', label: 'Steps/rev', category: 'X Axis ELS' },
+    { key: 'x_leadscrew_pitch_mm', label: 'Leadscrew pitch (mm)', category: 'X Axis ELS' },
+    { key: 'x_belt_ratio', label: 'Belt ratio', category: 'X Axis ELS' },
+    { key: 'x_steps_per_mm', label: 'Steps/mm', category: 'X Axis ELS', readOnly: true },
+    // Threading
+    { key: 'thread_retract_mode', label: 'Retract mode', category: 'Threading' },
+    { key: 'thread_retract_x_mm', label: 'Retract X (mm)', category: 'Threading' },
+    { key: 'thread_compound_angle', label: 'Compound angle (\u00B0)', category: 'Threading' },
 ];
 
 function loadConfig() {
@@ -445,7 +489,139 @@ function renderSavedPositions() {
     }
 }
 
+// --- Tool offset table (localStorage) ---
+
+function loadToolTable() {
+    try {
+        const data = localStorage.getItem('superdro_tools');
+        if (data) {
+            state.toolTable = JSON.parse(data);
+        }
+        const active = localStorage.getItem('superdro_active_tool');
+        if (active) {
+            state.activeTool = parseInt(active, 10);
+        }
+    } catch (e) { /* ignore corrupt data */ }
+}
+
+function saveToolTable() {
+    localStorage.setItem('superdro_tools', JSON.stringify(state.toolTable));
+    if (state.activeTool !== null) {
+        localStorage.setItem('superdro_active_tool', String(state.activeTool));
+    } else {
+        localStorage.removeItem('superdro_active_tool');
+    }
+}
+
+function addTool() {
+    const maxNum = state.toolTable.reduce((m, t) => Math.max(m, t.number), 0);
+    state.toolTable.push({ number: maxNum + 1, label: '', xOffset: 0, zOffset: 0 });
+    saveToolTable();
+    renderToolTable();
+}
+
+function deleteTool(index) {
+    const tool = state.toolTable[index];
+    if (tool && state.activeTool === tool.number) {
+        state.activeTool = null;
+    }
+    state.toolTable.splice(index, 1);
+    saveToolTable();
+    renderToolTable();
+    updateActiveToolDisplay();
+}
+
+function activateTool(num) {
+    const newTool = state.toolTable.find(t => t.number === num);
+    if (!newTool) return;
+
+    const oldTool = state.toolTable.find(t => t.number === state.activeTool);
+    const oldX = oldTool ? oldTool.xOffset : 0;
+    const oldZ = oldTool ? oldTool.zOffset : 0;
+    const deltaX = newTool.xOffset - oldX;
+    const deltaZ = newTool.zOffset - oldZ;
+
+    state.activeTool = num;
+    saveToolTable();
+
+    // Shift DRO by sending preset commands with offset delta
+    if (deltaX !== 0) {
+        sendCommand({ cmd: 'preset', axis: 'x', value: state.xPosMm - deltaX });
+    }
+    if (deltaZ !== 0) {
+        sendCommand({ cmd: 'preset', axis: 'z', value: state.zPosMm - deltaZ });
+    }
+
+    renderToolTable();
+    updateActiveToolDisplay();
+}
+
+function touchOffTool(index) {
+    const tool = state.toolTable[index];
+    if (!tool) return;
+    tool.xOffset = state.xPosMm;
+    tool.zOffset = state.zPosMm;
+    saveToolTable();
+    renderToolTable();
+}
+
+function updateToolLabel(index, label) {
+    if (state.toolTable[index]) {
+        state.toolTable[index].label = label;
+        saveToolTable();
+    }
+}
+
+function renderToolTable() {
+    const container = document.getElementById('tool-table-body');
+    if (!container) return;
+    container.innerHTML = '';
+
+    for (let i = 0; i < state.toolTable.length; i++) {
+        const tool = state.toolTable[i];
+        const isActive = state.activeTool === tool.number;
+        const row = document.createElement('tr');
+        row.className = isActive ? 'tool-row active' : 'tool-row';
+
+        row.innerHTML = `
+            <td class="tool-num">T${tool.number}</td>
+            <td><input class="tool-label-input" type="text" value="${tool.label}"
+                 placeholder="---" onchange="updateToolLabel(${i}, this.value)"></td>
+            <td class="tool-offset">${tool.xOffset.toFixed(3)}</td>
+            <td class="tool-offset">${tool.zOffset.toFixed(3)}</td>
+            <td class="tool-actions">
+                <button class="btn btn-small" onclick="touchOffTool(${i})">TOUCH</button>
+                <button class="btn btn-small${isActive ? ' btn-accent' : ''}"
+                        onclick="activateTool(${tool.number})">${isActive ? 'ACTIVE' : 'SELECT'}</button>
+                <button class="btn btn-small btn-dim" onclick="deleteTool(${i})">\u00D7</button>
+            </td>`;
+        container.appendChild(row);
+    }
+}
+
+function updateActiveToolDisplay() {
+    const el = document.getElementById('active-tool-display');
+    if (!el) return;
+    if (state.activeTool !== null) {
+        el.textContent = 'T' + state.activeTool;
+        el.className = 'active-tool active';
+    } else {
+        el.textContent = '---';
+        el.className = 'active-tool';
+    }
+}
+
+// --- Reconnect ---
+
+function reconnectWs() {
+    if (ws) {
+        ws.close();
+    }
+}
+
 // --- Init ---
+loadToolTable();
 connect();
 updateDRO();
 updateConnectionUI();
+updateActiveToolDisplay();

@@ -11,8 +11,10 @@
     <header id="title-bar">
         <span id="brand">SuperDRO</span>
         <div id="connection-status">
+            <span id="mode-badge" class="mode-badge hidden"></span>
             <span id="status-dot" class="dot dot-red"></span>
             <span id="status-text">Disconnected</span>
+            <button class="reconnect-btn" onclick="reconnectWs()" title="Reconnect">&#x21bb;</button>
         </div>
     </header>
 
@@ -23,6 +25,7 @@
         <nav id="toolbar-left">
             <button class="tb-btn active" data-tab="dro" onclick="switchTab('dro')" title="DRO">DRO</button>
             <button class="tb-btn" data-tab="config" onclick="switchTab('config')" title="Configuration">CFG</button>
+            <button class="tb-btn" data-tab="tool" onclick="switchTab('tool')" title="Tool Offsets">TOOL</button>
             <hr class="tb-sep">
             <button class="tb-btn" onclick="zeroAll()" title="Zero All Axes">0&rarr;</button>
             <button class="tb-btn" id="unit-toggle" onclick="toggleUnit()" title="Toggle mm/in">mm</button>
@@ -73,6 +76,28 @@
             <div id="config-categories"></div>
         </main>
 
+        <!-- Tool Tab -->
+        <main id="tab-tool" class="tab-content">
+            <div id="tool-header">
+                <h2>Tool Offsets</h2>
+                <div id="tool-actions">
+                    <button class="btn" onclick="addTool()">ADD TOOL</button>
+                </div>
+            </div>
+            <table id="tool-table">
+                <thead>
+                    <tr>
+                        <th>Tool</th>
+                        <th>Label</th>
+                        <th>X Offset</th>
+                        <th>Z Offset</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="tool-table-body"></tbody>
+            </table>
+        </main>
+
         <!-- Right status bar -->
         <aside id="status-bar">
             <!-- RPM section -->
@@ -85,6 +110,12 @@
             <div class="sb-section">
                 <div class="sb-label">STATE</div>
                 <div class="state-badge" id="state-indicator">IDLE</div>
+            </div>
+            <hr class="sb-sep">
+            <!-- Active tool section -->
+            <div class="sb-section">
+                <div class="sb-label">TOOL</div>
+                <div class="active-tool" id="active-tool-display">---</div>
             </div>
             <hr class="sb-sep">
             <!-- Saved positions section -->
