@@ -5,6 +5,7 @@
 #include "config.h"
 #include "encoder.h"
 #include "stepper.h"
+#include "els.h"
 #include "protocol.h"
 #include "safety.h"
 
@@ -35,6 +36,7 @@ int main(void) {
     config_recalculate();
     encoder_init();
     stepper_init();
+    els_init();
     safety_init();
 
     // Launch Core 1
@@ -45,8 +47,48 @@ int main(void) {
         safety_watchdog_feed();
         safety_debounce_update();
         encoder_update();
+
+        // ELS safety interlock: disengage on E-stop
+        if (safety_estop_active() && els_get_state() != ELS_IDLE)
+            els_disengage();
+
+        // ELS sync loop
+        els_update();
+
+        // ELS error threshold → disengage
+        if (els_get_state() == ELS_ENGAGED &&
+            (els_get_error() > 50 || els_get_error() < -50))
+            els_disengage();
+
+        // Engage button edge-detect (toggle: engage/disengage)
+        {
+            static bool prev_engage = false;
+            bool engage_now = button_engage_pressed();
+            if (engage_now && !prev_engage) {
+                if (els_get_state() == ELS_IDLE && !safety_estop_active())
+                    els_engage();
+                else if (els_get_state() != ELS_IDLE)
+                    els_disengage();
+            }
+            prev_engage = engage_now;
+        }
+
+        // Feed hold button edge-detect (toggle: hold/resume)
+        {
+            static bool prev_fh = false;
+            bool fh_now = button_feed_hold_pressed();
+            if (fh_now && !prev_fh) {
+                if (els_get_state() == ELS_ENGAGED)
+                    els_feed_hold();
+                else if (els_get_state() == ELS_FEED_HOLD)
+                    els_resume();
+            }
+            prev_fh = fh_now;
+        }
+
         stepper_update();
 
+        // Update status snapshot
         axis_position_t x = x_axis_read();
         axis_position_t z = z_axis_read();
         float rpm = spindle_read_rpm();
@@ -55,8 +97,23 @@ int main(void) {
         g_status.z_pos_mm = z.position_mm;
         g_status.rpm = rpm;
         g_status.estop = safety_estop_active();
-        g_status.state = safety_alarm_active() ? STATE_ALARM : STATE_IDLE;
+        g_status.pitch_mm = els_get_pitch();
+        g_status.els_state = (uint8_t)els_get_state();
+        g_status.els_error = els_get_error();
 
-        sleep_us(20); // ~50 kHz loop for Phase 1 (DRO only)
+        // State mapping
+        if (safety_alarm_active()) {
+            g_status.state = STATE_ALARM;
+        } else if (els_get_state() == ELS_ENGAGED) {
+            g_status.state = STATE_THREADING;
+        } else if (els_get_state() == ELS_FEED_HOLD) {
+            g_status.state = STATE_FEED_HOLD;
+            g_status.feed_hold = true;
+        } else {
+            g_status.state = STATE_IDLE;
+            g_status.feed_hold = false;
+        }
+
+        sleep_us(20); // ~50 kHz loop
     }
 }

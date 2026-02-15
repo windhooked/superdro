@@ -13,6 +13,7 @@ add_executable(superdro
     src/config.c
     src/encoder.c
     src/stepper.c
+    src/els.c
     src/protocol.c
     src/safety.c
 )

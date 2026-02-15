@@ -1,6 +1,7 @@
 #include "protocol.h"
 #include "config.h"
 #include "encoder.h"
+#include "els.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -44,10 +45,20 @@ void protocol_send_status(const status_snapshot_t *s) {
         default:              state_str = "unknown"; break;
     }
 
+    const char *els_str;
+    switch (s->els_state) {
+        case 0:  els_str = "idle"; break;
+        case 1:  els_str = "engaged"; break;
+        case 2:  els_str = "feed_hold"; break;
+        default: els_str = "unknown"; break;
+    }
+
     snprintf(buf, sizeof(buf),
-        "{\"pos\":{\"x\":%.3f,\"z\":%.3f},\"rpm\":%.0f,\"state\":\"%s\",\"fh\":%s}",
+        "{\"pos\":{\"x\":%.3f,\"z\":%.3f},\"rpm\":%.0f,\"state\":\"%s\","
+        "\"fh\":%s,\"pitch\":%.3f,\"els\":\"%s\",\"err\":%ld}",
         s->x_pos_mm, s->z_pos_mm, s->rpm, state_str,
-        s->feed_hold ? "true" : "false");
+        s->feed_hold ? "true" : "false",
+        s->pitch_mm, els_str, (long)s->els_error);
     json_send(buf);
 }
 
@@ -181,6 +192,32 @@ static void handle_command(const char *json) {
         }
         pos += snprintf(buf + pos, sizeof(buf) - pos, "}}");
         json_send(buf);
+    } else if (strcmp(cmd, "set_pitch") == 0) {
+        float pitch;
+        if (json_get_float(json, "pitch", &pitch)) {
+            if (els_set_pitch(pitch)) {
+                protocol_send_ack("set_pitch", true, NULL);
+            } else {
+                protocol_send_ack("set_pitch", false, "invalid pitch or would exceed max step rate");
+            }
+        } else {
+            protocol_send_ack("set_pitch", false, "missing pitch");
+        }
+    } else if (strcmp(cmd, "els_engage") == 0) {
+        if (els_engage()) {
+            protocol_send_ack("els_engage", true, NULL);
+        } else {
+            protocol_send_ack("els_engage", false, "cannot engage");
+        }
+    } else if (strcmp(cmd, "els_disengage") == 0) {
+        els_disengage();
+        protocol_send_ack("els_disengage", true, NULL);
+    } else if (strcmp(cmd, "els_feed_hold") == 0) {
+        els_feed_hold();
+        protocol_send_ack("els_feed_hold", true, NULL);
+    } else if (strcmp(cmd, "els_resume") == 0) {
+        els_resume();
+        protocol_send_ack("els_resume", true, NULL);
     } else {
         protocol_send_ack(cmd, false, "unknown command");
     }

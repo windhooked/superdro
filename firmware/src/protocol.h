@@ -22,6 +22,10 @@ typedef struct {
     machine_state_t state;
     bool feed_hold;
     bool estop;
+    // ELS fields
+    float pitch_mm;        // Current thread pitch (0 if not set)
+    uint8_t els_state;     // 0=idle, 1=engaged, 2=feed_hold
+    int32_t els_error;     // Tracking error in steps
 } status_snapshot_t;
 
 // Initialize USB CDC serial
