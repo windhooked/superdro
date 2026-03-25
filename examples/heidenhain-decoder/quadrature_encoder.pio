@@ -1,0 +1,145 @@
+;
+; Heidenhain Glass Scale PIO Quadrature Decoder (x4)
+; Based on the Raspberry Pi pico-examples quadrature_encoder approach.
+;
+; Uses a 16-entry jump table at origin 0 to decode all state transitions.
+; The Y register maintains the running count. The program continuously
+; pushes the current count to the RX FIFO (non-blocking).
+;
+; ISR holds the previous + current pin state as: [prev_A prev_B curr_A curr_B]
+; This 4-bit value indexes into the jump table.
+;
+; Resolution: 4 µm signal period / 4 edges = 1 µm per count
+;
+
+.program quadrature_encoder
+.origin 0
+
+; Jump table: index = (old_AB << 2) | new_AB
+; Transition:   Action
+;   00 -> 00    no change
+;   00 -> 01    decrement
+;   00 -> 10    increment
+;   00 -> 11    error (skip)
+;   01 -> 00    increment
+;   01 -> 01    no change
+;   01 -> 10    error (skip)
+;   01 -> 11    decrement
+;   10 -> 00    decrement
+;   10 -> 01    error (skip)
+;   10 -> 10    no change
+;   10 -> 11    increment
+;   11 -> 00    error (skip)
+;   11 -> 01    increment
+;   11 -> 10    decrement
+;   11 -> 11    no change
+
+    JMP update      ; 00 -> 00
+    JMP decrement   ; 00 -> 01
+    JMP increment   ; 00 -> 10
+    JMP update      ; 00 -> 11 (error)
+    JMP increment   ; 01 -> 00
+    JMP update      ; 01 -> 01
+    JMP update      ; 01 -> 10 (error)
+    JMP decrement   ; 01 -> 11
+    JMP decrement   ; 10 -> 00
+    JMP update      ; 10 -> 01 (error)
+    JMP update      ; 10 -> 10
+    JMP increment   ; 10 -> 11
+    JMP update      ; 11 -> 00 (error)
+    JMP increment   ; 11 -> 01
+    JMP decrement   ; 11 -> 10
+    JMP update      ; 11 -> 11
+
+; --- Decrement ---
+decrement:
+    JMP Y--, update     ; Y-- (wraps from 0 to 0xFFFFFFFF, which is -1 in two's complement)
+
+; --- Update: sample pins, build jump index, push count ---
+update:
+.wrap_target
+    ; Push current count (non-blocking, so it just overwrites if FIFO full)
+    MOV ISR, Y
+    PUSH noblock
+
+    ; Shift previous state (currently in OSR) into ISR
+    MOV ISR, NULL       ; clear ISR
+    IN OSR, 2           ; shift in previous A,B from OSR (2 bits)
+    IN PINS, 2          ; shift in current A,B from pins (2 bits)
+
+    ; Save current pins as "previous" for next iteration
+    MOV OSR, PINS
+
+    ; Execute computed jump: ISR now contains 0...0[prevA prevB currA currB]
+    ; The bottom 4 bits form an address 0-15 in our jump table
+    MOV PC, ISR
+.wrap
+
+; --- Increment ---
+; PIO has no increment instruction, so we negate, decrement, negate
+increment:
+    MOV Y, ~Y
+    JMP Y--, increment_cont
+increment_cont:
+    MOV Y, ~Y
+    JMP update
+
+
+% c-sdk {
+#include "hardware/clocks.h"
+#include "hardware/gpio.h"
+
+/*
+ * Initialise the PIO quadrature encoder state machine.
+ *
+ * @param pio           PIO instance (pio0 or pio1)
+ * @param sm            State machine number (0-3)
+ * @param pin           Base GPIO pin for channel A. Channel B must be pin+1.
+ * @param max_step_rate Maximum expected step rate in Hz. Pass 0 for maximum
+ *                      clock speed. Used to save power by lowering SM clock.
+ */
+static inline void quadrature_encoder_program_init(PIO pio, uint sm, uint pin, int max_step_rate)
+{
+    pio_sm_set_consecutive_pindirs(pio, sm, pin, 2, false);   // A and B as inputs
+    pio_gpio_init(pio, pin);
+    pio_gpio_init(pio, pin + 1);
+
+    // No pull-ups needed for RS-422 line receiver output (driven TTL)
+    // but enable them as safety for disconnected state
+    gpio_pull_up(pin);
+    gpio_pull_up(pin + 1);
+
+    pio_sm_config c = quadrature_encoder_program_get_default_config(0);  // offset is always 0
+
+    sm_config_set_in_pins(&c, pin);     // IN base = pin (reads pin, pin+1)
+    sm_config_set_in_shift(&c, false, false, 32);  // shift left, no autopush
+
+    // Set clock divider to reduce power if max_step_rate is specified
+    // Each iteration is ~10 PIO cycles, and we need to sample at 4x the step rate
+    if (max_step_rate == 0) {
+        sm_config_set_clkdiv(&c, 1.0f);  // Full speed
+    } else {
+        float div = (float)clock_get_hz(clk_sys) / (10.0f * max_step_rate * 4.0f);
+        if (div < 1.0f) div = 1.0f;
+        sm_config_set_clkdiv(&c, div);
+    }
+
+    pio_sm_init(pio, sm, 16, &c);  // Start at instruction 16 (after jump table), i.e. "update"
+    pio_sm_set_enabled(pio, sm, true);
+}
+
+/*
+ * Read the current encoder count.
+ * Returns a 32-bit signed count (two's complement).
+ */
+static inline int32_t quadrature_encoder_get_count(PIO pio, uint sm)
+{
+    // Drain the FIFO — the most recent value is what we want
+    uint32_t val = 0;
+    while (pio_sm_get_rx_fifo_level(pio, sm) > 0) {
+        val = pio_sm_get(pio, sm);
+    }
+    return (int32_t)val;
+}
+
+%}

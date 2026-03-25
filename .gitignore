@@ -1,3 +1,9 @@
+# Local environment
+.env
+
+# Claude Code project settings
+.claude/
+
 # Firmware build
 firmware/build/
 
@@ -5,6 +11,8 @@ firmware/build/
 firmware/test/test_config
 firmware/test/test_protocol
 firmware/test/test_encoder
+firmware/test/test_els
+firmware/test/test_stepper
 tests/e2e/firmware_sim
 
 # Debug symbols
