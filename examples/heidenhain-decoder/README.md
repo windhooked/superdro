@@ -5,9 +5,9 @@
 PIO-based x4 quadrature decoder for Heidenhain TTL (RS-422) glass scales with
 **distance-coded reference mark** absolute position computation.
 
-- **Scale signal period:** 4 µm (configurable for 20 µm / 40 µm)
+- **Scale signal period:** 20 µm default (LS series — change `SIGNAL_PERIOD_UM` for LF=4 µm, LB=40 µm)
 - **Decode mode:** x4 (all edges)
-- **Resolution:** 1 µm per count
+- **Resolution:** 5 µm per count (= signal_period / 4)
 - **Output:** UART0 at 115200 baud (GP0 TX, GP1 RX)
 - **Absolute position:** Established after traversing just 2 reference marks (~20 mm)
 
@@ -87,14 +87,15 @@ INC:+12.345 mm D:+5 ABS:+412.345 mm          ← normal operation (absolute know
 INC:+0.023 mm D:+23 ABS:--- [1/2 ref]         ← one ref mark seen, need one more
 INC:+0.000 mm D:+0 ABS:--- [no ref]           ← no ref marks seen yet
 
->> REF#1 @ count=+92000 (dir=+1) [need 1 more ref mark]
->> REF#2 @ count=+112400 (dir=+1) ABS=+412345 um (+412.345 mm)
+>> REF#1 @ count=+18400 (dir=+1) [need 1 more ref mark]
+>> REF#2 @ count=+22480 (dir=+1) ABS=+412345 um (+412.345 mm)
    [DISTANCE-CODE DECODE]
-   delta=+20400 counts, MRR=5100 periods, D=+1
-   P1=103086 periods => 1st ref @ +412344 um
-   offset=+320344 (abs = inc + +320344)
+   delta=+4080 counts, MRR=1020 periods, D=+1
+   P1=20617 periods => 1st ref @ +412340 um
+   offset=+393940 (abs = inc + +393940)
    *** ABSOLUTE POSITION ESTABLISHED ***
 ```
+*(counts shown for LS series: 20 µm period → 5 µm/count)*
 
 ## Architecture
 

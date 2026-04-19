@@ -17,7 +17,7 @@
  *   UART0 TX = GP0  -->  Connect to receiving device RX
  *   UART0 RX = GP1  -->  (optional, for commands)
  *
- * Resolution: 4 µm signal period / 4 (x4 decode) = 1 µm per count
+ * Resolution: signal_period_um / 4 (x4 decode) counts per µm
  *
  * Distance-Coded Reference Marks (models ending in "C"):
  * -------------------------------------------------------
@@ -75,8 +75,8 @@
 // │ LS (C)  │    20 µm      │      1000        │    20 mm      │
 // │ LB (C)  │    40 µm      │      2000        │    80 mm      │
 // └─────────┴───────────────┴──────────────────┴───────────────┘
-#define SIGNAL_PERIOD_UM    4       // Signal period in micrometers
-#define NOMINAL_INCREMENT_N 5000    // N: nominal increment in signal periods
+#define SIGNAL_PERIOD_UM    20      // Signal period in micrometers (LS series = 20, LF = 4, LB = 40)
+#define NOMINAL_INCREMENT_N 1000    // N: nominal increment in signal periods (LS = 1000, LF = 5000, LB = 2000)
 #define COUNTS_PER_PERIOD   4       // x4 decoding
 
 // Output interval
@@ -311,7 +311,7 @@ int main()
     uart_send("UART: 115200 8N1 on GP0/GP1\r\n");
     uart_send("Commands: 'z'=zero, 'r'=reset refs, 'a'=query abs\r\n");
     uart_send("Traverse over 2 ref marks to establish absolute pos\r\n");
-    uart_send("  (max ~20 mm traverse needed for LF-C series)\r\n");
+    uart_send("  (max ~20 mm traverse needed for LS-C series)\r\n");
     uart_send("================================================\r\n\r\n");
 
     // --- Main loop ---

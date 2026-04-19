@@ -134,11 +134,12 @@ static inline void quadrature_encoder_program_init(PIO pio, uint sm, uint pin, i
  */
 static inline int32_t quadrature_encoder_get_count(PIO pio, uint sm)
 {
-    // Drain the FIFO — the most recent value is what we want
+    // Snapshot level first so we drain a bounded number of entries (FIFO depth = 4).
+    // This avoids spinning indefinitely if the SM refills faster than we read.
     uint32_t val = 0;
-    while (pio_sm_get_rx_fifo_level(pio, sm) > 0) {
+    int n = (int)pio_sm_get_rx_fifo_level(pio, sm);
+    while (n-- > 0)
         val = pio_sm_get(pio, sm);
-    }
     return (int32_t)val;
 }
 
