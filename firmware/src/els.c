@@ -92,7 +92,10 @@ bool els_arm_threading(int64_t ratio_num, int64_t ratio_den,
     if (slot == cfg->thread_table_count && cfg->thread_table_count < 64)
         cfg->thread_table_count++;
 
-    (void)start_index;  // multi-start offset not yet wired in shim path
+    // Configure starts + offset before arming so CMD_ARM_THREADING reads them
+    uint32_t starts_payload = ((uint32_t)(starts ? starts : 1u) << 8)
+                              | (uint32_t)(start_index & 0xFFu);
+    els_fsm_event(CMD_SET_STARTS, starts_payload);
     els_fsm_event(CMD_ARM_THREADING, slot);
     return els_fsm_get_state() != ELS_STATE_FAULT;
 }

@@ -19,16 +19,21 @@ static void core1_main(void) {
 
         const els_status_t *st = els_status_read();
         if (st) {
-            // Map ELS status → legacy status_snapshot_t for protocol_send_status
+            const machine_config_t *cfg = config_get_all();
             status_snapshot_t snap = {
-                .rpm       = st->spindle_rpm,
-                .estop     = st->estop,
-                .els_state = (uint8_t)st->state,
-                .els_error = st->z_backlog,
+                .rpm           = st->spindle_rpm,
+                .estop         = st->estop,
+                .pitch_mm      = els_get_pitch(),
+                // ELS Phase 2
+                .els_state     = st->state,
+                .els_fault     = st->fault,
+                .z_backlog     = st->z_backlog,
+                .x_backlog     = st->x_backlog,
+                .spindle_count = st->spindle_count,
+                .c_pos_steps   = st->c_pos_steps,
+                .index_latched = st->index_latched,
             };
 
-            // Derive mm positions from step counts + config
-            const machine_config_t *cfg = config_get_all();
             if (cfg->z_steps_per_mm > 0.0f)
                 snap.z_pos_mm = (float)st->z_pos_steps / cfg->z_steps_per_mm;
             if (cfg->x_steps_per_mm > 0.0f)

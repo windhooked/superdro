@@ -19,7 +19,7 @@
 
 **Procedure:**
 1. Rotate spindle by hand through ~5 revolutions forward, then ~5 reverse.
-2. In serial terminal, send `{"cmd":"status"}` every second; observe `spindle_count` field.
+2. In serial terminal, observe the periodic status JSON messages (broadcast automatically at ~50 Hz); watch the `spindle_count` field.
 
 **Pass criteria:**
 - Count increases monotonically on forward rotation; decreases on reverse. No missed edges (count tracks exactly with rotation).
@@ -55,7 +55,7 @@ cd firmware/test
 make test
 ```
 
-**Pass criteria:** All 10 test suites exit 0:
+**Pass criteria:** All 11 test suites exit 0:
 - `test_bresenham`: zero drift at 50+ ratios over 1M edges
 - `test_ramp`: trapezoidal profile, idle after disengage
 - `test_ratio`: GCD reduction, invalid ratio rejection, PPR divisibility
