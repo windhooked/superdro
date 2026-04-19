@@ -61,7 +61,11 @@ superdro/
 ## Key Hardware Decisions
 
 - Spindle encoder: Optical, 1000+ PPR, quadrature on GP2/GP3, index on GP4
-- X-axis: Glass scale or magnetic encoder (quadrature on GP5/GP6)
+- X-axis: Heidenhain LS 486C glass scale (20 µm period, distance-coded ref marks, RS-422)
+  - Quadrature A/B on GP5/GP6, reference mark on GP7
+  - RS-422 receiver: YL-128 (MAX490) module × 3, one per signal pair
+  - Short bench leads: connect Ua1+/Ua2+/Ua0+ directly via 1kΩ/2kΩ divider to GPIO (passive, no IC)
+  - YL-128 VCC: 3.3V works for bench test (out of spec); 5V + dividers for production
 - Z-axis: Glass scale or magnetic encoder (quadrature on GP20/GP21) + CL57T closed-loop stepper (step/dir on GP8/GP9)
 - E-stop: GP14 (active low, HW pull-up)
 - Physical buttons: GP15 (engage), GP16 (feed hold), GP17 (cycle start)

@@ -62,6 +62,8 @@ See `docs/els-bring-up.md` for the full step-by-step procedure. This section is 
 ### Prerequisites
 - [ ] CL57T closed-loop stepper wired to GP8 (step) / GP9 (dir) / GP10 (enable)
 - [ ] Spindle encoder on GP2/GP3 (quad) / GP4 (index), 1000+ PPR optical
+- [ ] LS 486C X-axis scale: Ua1+→GP5, Ua2+→GP6, Ua0+→GP7 via 1kΩ/2kΩ dividers
+      (or YL-128 MAX490 modules × 3 for proper RS-422 receive; 3.3V VCC bench, 5V production)
 - [ ] E-stop wired to GP14 (active low)
 - [ ] Engage / feed-hold / cycle-start buttons on GP15 / GP16 / GP17
 - [ ] Logic analyser or oscilloscope available for step pulse verification
