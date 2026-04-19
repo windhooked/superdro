@@ -3,49 +3,50 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "els_engine.h"  // for stepper_axis_t
 
-// Initialize PIO 1 SM 0 for step pulse generation, and dir/enable GPIO pins.
-// Stepper starts DISABLED (enable pin HIGH) for safety.
+// Initialize all three stepper axes (PIO1 SM0=Z, SM1=X, SM2=C).
+// Loads the stepper PIO program once; configures per-axis pulse widths.
+// Call before els_fsm_init. Not ISR-safe.
 void stepper_init(void);
 
-// Enable/disable the CL57T driver. Active low: true = enabled (pin LOW).
-void stepper_enable(bool enabled);
+// Enable or disable an axis driver. Z/X: active-low enable pin. C: no enable pin.
+// Core 0. __not_in_flash_func.
+void stepper_enable(stepper_axis_t axis, bool en);
 
-// Set step direction. true = forward (toward headstock), false = reverse.
-// Must be called before pushing steps in the new direction.
-// CL57T setup time (~5 µs) is satisfied by the Core 0 loop period (20 µs).
-void stepper_set_dir(bool forward);
+// Set step direction for an axis. true = forward.
+// Core 0. __not_in_flash_func.
+void stepper_set_dir(stepper_axis_t axis, bool forward);
 
-// Get current direction setting.
-bool stepper_get_dir(void);
+// Push one step-delay word to the axis TX FIFO (non-blocking).
+// Returns false if FIFO is full.
+// Core 0. __not_in_flash_func.
+bool stepper_push(stepper_axis_t axis, uint32_t delay_cycles);
 
-// Push a single step command to the PIO TX FIFO.
-// delay_cycles = inter-step period in PIO clock cycles (use stepper_delay_from_rate()).
-// Increments/decrements internal position counter based on current direction.
-// Returns false if TX FIFO is full (caller should retry next loop iteration).
-bool stepper_push_step(uint32_t delay_cycles);
+// Free TX FIFO slots for the given axis (0–4).
+// Core 0. __not_in_flash_func.
+unsigned int stepper_fifo_free(stepper_axis_t axis);
 
-// Calculate the FIFO delay value for a given step rate (steps/second).
-// Returns UINT32_MAX for rate <= 0.
+// Stop axis: drain FIFO, restart SM. Motor holds torque.
+// Core 0. __not_in_flash_func.
+void stepper_stop(stepper_axis_t axis);
+
+// Compute delay_cycles for a target step rate (steps/sec).
+// Returns UINT32_MAX if rate is 0 or exceeds hardware maximum.
+// Pure math; callable from any context.
+uint32_t stepper_delay_for_rate(stepper_axis_t axis, uint32_t steps_per_sec);
+
+// -- Legacy single-axis API (Z only) for backward compat with main.c --
+void     stepper_enable_z(bool en);
+void     stepper_set_dir_z(bool forward);
+bool     stepper_get_dir_z(void);
+bool     stepper_push_step(uint32_t delay_cycles);   // Z only
 uint32_t stepper_delay_from_rate(float steps_per_sec);
-
-// Stop stepping: drain FIFO, SM blocks at pull. Motor holds position.
-void stepper_stop(void);
-
-// Get absolute step position (signed). Increments on forward, decrements on reverse.
-// Tracks at FIFO push time — may be up to 4 steps ahead of physical position.
-int32_t stepper_get_position(void);
-
-// Reset position counter to zero.
-void stepper_zero_position(void);
-
-// Set position counter to a specific value.
-void stepper_set_position(int32_t pos);
-
-// Check how many TX FIFO slots are available (0–4).
-unsigned int stepper_fifo_free(void);
-
-// Called from Core 0 loop. Reserved for future monitoring (CL57T alarm, stall detect).
-void stepper_update(void);
+void     stepper_stop_z(void);
+int32_t  stepper_get_position(void);                 // Z position
+void     stepper_zero_position(void);
+void     stepper_set_position(int32_t pos);
+unsigned int stepper_fifo_free_z(void);
+void     stepper_update(void);
 
 #endif // STEPPER_H

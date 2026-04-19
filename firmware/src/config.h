@@ -40,10 +40,51 @@ typedef struct {
     uint8_t  thread_retract_mode;       // 0 = rapid retract X, 1 = spring pass
     float    thread_retract_x_mm;
     float    thread_compound_angle;
+
+    // ELS — per-axis max step rates (steps/sec)
+    uint32_t z_max_step_rate;           // default: 200000
+    uint32_t x_max_step_rate;           // default: 200000
+    uint32_t c_max_step_rate;           // default: 10000 (VFD opto limit)
+
+    // ELS — per-axis soft limits (in steps; INT32_MIN/MAX = disabled)
+    int32_t  z_soft_min_steps;
+    int32_t  z_soft_max_steps;
+    int32_t  x_soft_min_steps;
+    int32_t  x_soft_max_steps;
+
+    // ELS — backlog fault thresholds (steps)
+    uint32_t z_backlog_threshold;       // default: 16
+    uint32_t x_backlog_threshold;       // default: 16
+
+    // ELS — ramp parameters (PIO cycles at 125 MHz)
+    uint32_t z_ramp_min_delay;          // derived from z_max_step_rate at recalculate
+    uint32_t z_ramp_max_delay;          // default: 125000 (~1 step/ms)
+    uint32_t z_ramp_delta;              // default: 500 (delay change per step)
+    uint32_t x_ramp_min_delay;
+    uint32_t x_ramp_max_delay;
+    uint32_t x_ramp_delta;
+    uint32_t c_ramp_min_delay;          // derived from c_max_step_rate
+    uint32_t c_ramp_delta;              // default: 2000
+
+    // ELS — C-axis (VFD) calibration
+    float    c_steps_per_rev;           // default: 10000
+    float    c_pulse_width_us;          // default: 5.0 µs (VFD opto min)
+
+    // ELS — thread table (precomputed GCD-reduced ratios)
+    uint16_t thread_table_count;
+    struct {
+        float    pitch_mm;
+        int64_t  ratio_num;
+        int64_t  ratio_den;
+        uint8_t  starts;
+    } thread_table[64];
 } machine_config_t;
 
 // Get pointer to active config (read-only outside config module)
 const machine_config_t *config_get_all(void);
+
+// Mutable access for ELS dynamic thread-table updates only
+machine_config_t *config_get_mutable(void);
 
 // Key-value access for serial protocol
 bool config_get(const char *key, char *value_out, size_t value_len);

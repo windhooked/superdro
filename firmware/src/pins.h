@@ -31,9 +31,12 @@
 #define PIN_Z_SCALE_A       20
 #define PIN_Z_SCALE_B       21
 
+// C-axis VFD step/dir (PIO 1, SM 2)
+// External 3.3V→5V level shift required (VFD opto input spec)
+#define PIN_C_STEP          18
+#define PIN_C_DIR           19
+
 // Reserved
-#define PIN_JOG_FWD         18
-#define PIN_JOG_REV         19
 #define PIN_FEED_OVERRIDE   22
 
 // ADC (reserved)

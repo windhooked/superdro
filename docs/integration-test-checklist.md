@@ -1,4 +1,4 @@
-# Phase 1 Integration Test Checklist
+# Integration Test Checklist
 
 ## Prerequisites
 - [ ] Pico W flashed with `superdro.uf2`
@@ -52,3 +52,51 @@
 - [ ] Very high RPM (>3000) displays correctly
 - [ ] Large position values (>400mm) display correctly
 - [ ] Negative positions display with sign
+
+---
+
+## Phase 2 — ELS (requires hardware + logic analyser)
+
+See `docs/els-bring-up.md` for the full step-by-step procedure. This section is a condensed pass/fail checklist.
+
+### Prerequisites
+- [ ] CL57T closed-loop stepper wired to GP8 (step) / GP9 (dir) / GP10 (enable)
+- [ ] Spindle encoder on GP2/GP3 (quad) / GP4 (index), 1000+ PPR optical
+- [ ] E-stop wired to GP14 (active low)
+- [ ] Engage / feed-hold / cycle-start buttons on GP15 / GP16 / GP17
+- [ ] Logic analyser or oscilloscope available for step pulse verification
+
+### Step 1 — Spindle encoder ring buffer
+- [ ] At 300 RPM, `spindle_read_rate_eps()` returns plausible value (within 5%)
+- [ ] Index pulse fires once per revolution
+- [ ] `spindle_index_fault()` triggers if index is lost for >2 revolutions
+
+### Step 2 — Single-start threading (M3×0.5)
+- [ ] `els_set_pitch(0.5)` + `els_engage()` → state = THREADING_ARMED
+- [ ] First index pulse → state transitions to THREADING_ENGAGED
+- [ ] Step pulses visible on LA at correct rate relative to spindle
+- [ ] `els_disengage()` stops Z motion, state = IDLE
+
+### Step 3 — Soft limits
+- [ ] Carriage at Z_min: further threading attempt faults with SOFT_LIMIT
+- [ ] RESET clears fault, returns to IDLE
+
+### Step 4 — Feed hold / resume
+- [ ] `els_feed_hold()` while threading → state = THREADING_HOLD, Z stops
+- [ ] `els_resume()` → state = THREADING_ENGAGED, Z resumes in sync
+
+### Step 5 — Multi-start threads (2-start M3×1)
+- [ ] `CMD_SET_STARTS` with starts=2, start_idx=0 then start_idx=1 produce
+      helices offset by exactly 180° (verify with thread gauge or LA)
+
+### Step 6 — Power feed
+- [ ] `CMD_START_FEED` on Z axis: carriage moves at correct mm/rev
+- [ ] Reversal (spindle direction change) reverses carriage
+
+### Step 7 — Jog
+- [ ] `CMD_JOG_START` / `CMD_JOG_STOP` on Z: smooth accel/decel ramp
+- [ ] No step pulses after `CMD_JOG_STOP` completes
+
+### Step 8 — E-stop
+- [ ] Trigger E-stop during threading → state = FAULT, Z stops immediately
+- [ ] `CMD_RESET_FAULT` clears to IDLE

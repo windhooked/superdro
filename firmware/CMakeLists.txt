@@ -12,7 +12,11 @@ add_executable(superdro
     src/main.c
     src/config.c
     src/encoder.c
+    src/spindle.c
     src/stepper.c
+    src/els_engine.c
+    src/els_ramp.c
+    src/els_fsm.c
     src/els.c
     src/protocol.c
     src/safety.c
@@ -35,6 +39,7 @@ target_link_libraries(superdro
     pico_stdlib
     pico_multicore
     hardware_pio
+    hardware_dma
     hardware_flash
     hardware_sync
     hardware_adc

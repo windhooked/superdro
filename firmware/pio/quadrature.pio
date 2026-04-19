@@ -28,6 +28,58 @@ done:
 .wrap
 
 % c-sdk {
+%}
+
+; quadrature_3pin — 3-pin variant for the spindle encoder (PIO 0, SM 0 only).
+; Samples A, B, and Index (I) pins. Pushes one word on ANY state change.
+; Word format: bits [2:0] = new {I, B, A} state.
+; C consumer checks which bits changed vs previous to distinguish quad vs index events.
+; Index detection: (new XOR prev) & 0x04 != 0 → index pin changed this sample.
+
+.program quadrature_3pin
+
+    in pins, 3         ; read initial {I,B,A} state into ISR[2:0]
+    mov y, isr         ; Y = previous 3-bit state
+
+.wrap_target
+    mov isr, null
+    in pins, 3         ; read {I,B,A} into ISR[2:0]
+    mov x, isr         ; X = current 3-bit state
+    jmp x!=y, changed
+    jmp .wrap_target
+changed:
+    push noblock
+    mov y, x
+.wrap
+
+% c-sdk {
+#include "hardware/pio.h"
+#include "hardware/gpio.h"
+
+static inline void quadrature_3pin_program_init(PIO pio, uint sm, uint offset,
+                                                uint base_pin) {
+    // base_pin = A, base_pin+1 = B, base_pin+2 = I (index)
+    pio_sm_set_consecutive_pindirs(pio, sm, base_pin, 3, false);
+
+    pio_sm_config c = quadrature_3pin_program_get_default_config(offset);
+    sm_config_set_in_pins(&c, base_pin);
+    sm_config_set_in_shift(&c, false, false, 32);
+    sm_config_set_clkdiv(&c, 1.0f);
+
+    gpio_pull_up(base_pin);
+    gpio_pull_up(base_pin + 1);
+    gpio_pull_up(base_pin + 2);
+
+    int pio_idx = (pio == pio1) ? 1 : 0;
+    gpio_set_function(base_pin,     GPIO_FUNC_PIO0 + pio_idx);
+    gpio_set_function(base_pin + 1, GPIO_FUNC_PIO0 + pio_idx);
+    gpio_set_function(base_pin + 2, GPIO_FUNC_PIO0 + pio_idx);
+
+    pio_sm_init(pio, sm, offset, &c);
+    pio_sm_set_enabled(pio, sm, true);
+}
+
+% c-sdk {
 #include "hardware/pio.h"
 #include "hardware/gpio.h"
 

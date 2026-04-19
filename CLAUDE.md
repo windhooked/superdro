@@ -28,9 +28,9 @@ superdro/
 
 ## Current Phase
 
-**Phase 1 — DRO**: Position display (X, Z, spindle RPM) on Android tablet. Implementation plan with 12 tasks is in `prd.md` under "Phase 1 Implementation Plan".
+**Phase 2 — ELS**: Electronic leadscrew (Z-axis threading/feed, spindle-synchronised). Spec in `docs/superdroElsPrd.md`, architecture in `docs/els-layer-b.md`, bring-up procedure in `docs/els-bring-up.md`.
 
-### Implementation Status (Phase 1)
+### Implementation Status (Phase 1 — DRO)
 
 - [x] Task 1: Monorepo project structure
 - [x] Task 2: PIO quadrature decoder (`pio/quadrature.pio`)
@@ -44,6 +44,19 @@ superdro/
 - [x] Task 10: DRO display screen
 - [x] Task 11: Config screen
 - [ ] Task 12: Integration testing (requires hardware)
+
+### Implementation Status (Phase 2 — ELS)
+
+- [x] `src/spindle.c/.h` — spindle encoder ring buffer, index latch, multi-start offset, rate estimation
+- [x] `src/els_engine.c/.h` — Bresenham ratio engine, soft limits, backlog tracking
+- [x] `src/els_ramp.c/.h` — trapezoidal accel/decel ramp, `els_ramp_floor()` for ramp-limited step delay
+- [x] `src/els_fsm.c/.h` — FSM: IDLE / THREADING_ARMED / ENGAGED / HOLD / FEED / JOG / INDEXING / FAULT
+- [x] `src/els.c/.h` — shim API: `els_set_pitch`, `els_engage`, `els_disengage`, `els_feed_hold`, `els_resume`
+- [x] `src/config.c` — flash buffer enlarged to sector size; `config_get_mutable()` for dynamic thread table
+- [x] `src/stepper.c/.h` — multi-axis refactor (Z/X/C), PIO Z stepper driver
+- [x] `firmware/test/` — full unit test suite (11 targets), host-compiled with mocked Pico SDK
+- [ ] `src/protocol.c` — new JSON command parsers (arm, feed, jog, disengage, feed_hold, resume, reset_fault) + new status fields
+- [ ] Hardware bring-up (see `docs/els-bring-up.md`)
 
 ## Key Hardware Decisions
 

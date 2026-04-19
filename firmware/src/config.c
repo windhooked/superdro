@@ -52,6 +52,38 @@ static void config_set_defaults(void) {
         .thread_retract_mode    = 0,
         .thread_retract_x_mm    = 1.0f,
         .thread_compound_angle  = 29.5f,
+
+        // ELS step rate limits
+        .z_max_step_rate        = 200000,
+        .x_max_step_rate        = 200000,
+        .c_max_step_rate        = 10000,
+
+        // Soft limits disabled by default
+        .z_soft_min_steps       = INT32_MIN,
+        .z_soft_max_steps       = INT32_MAX,
+        .x_soft_min_steps       = INT32_MIN,
+        .x_soft_max_steps       = INT32_MAX,
+
+        // Backlog thresholds
+        .z_backlog_threshold    = 16,
+        .x_backlog_threshold    = 16,
+
+        // Ramp: derived in config_recalculate; conservative deltas
+        .z_ramp_min_delay       = 0,        // derived
+        .z_ramp_max_delay       = 125000,   // 1 ms per step at 125 MHz
+        .z_ramp_delta           = 500,
+        .x_ramp_min_delay       = 0,        // derived
+        .x_ramp_max_delay       = 125000,
+        .x_ramp_delta           = 500,
+        .c_ramp_min_delay       = 0,        // derived
+        .c_ramp_delta           = 2000,
+
+        // C-axis VFD calibration
+        .c_steps_per_rev        = 10000.0f,
+        .c_pulse_width_us       = 5.0f,
+
+        // Thread table empty by default
+        .thread_table_count     = 0,
     };
 }
 
@@ -75,6 +107,14 @@ void config_recalculate(void) {
     }
     g_config.spindle_counts_per_rev =
         (uint32_t)g_config.spindle_ppr * g_config.spindle_quadrature;
+
+    // Derive ramp min delays from max step rates (sys_hz / max_rate)
+    if (g_config.z_max_step_rate > 0)
+        g_config.z_ramp_min_delay = 125000000u / g_config.z_max_step_rate;
+    if (g_config.x_max_step_rate > 0)
+        g_config.x_ramp_min_delay = 125000000u / g_config.x_max_step_rate;
+    if (g_config.c_max_step_rate > 0)
+        g_config.c_ramp_min_delay = 125000000u / g_config.c_max_step_rate;
 }
 
 bool config_load(void) {
@@ -84,7 +124,12 @@ bool config_load(void) {
     if (stored->magic == CONFIG_MAGIC &&
         stored->version == CONFIG_VERSION &&
         stored->checksum == config_checksum(&stored->config)) {
-        memcpy(&g_config, &stored->config, sizeof(g_config));
+        // Zero-fill then copy: handles blobs smaller than current struct
+        // (forward-compat with older flash images missing new ELS fields)
+        config_set_defaults();
+        size_t copy_size = sizeof(stored->config);
+        if (copy_size > sizeof(g_config)) copy_size = sizeof(g_config);
+        memcpy(&g_config, &stored->config, copy_size);
         config_recalculate();
         return true;
     }
@@ -101,20 +146,24 @@ bool config_save(void) {
     memcpy(&block.config, &g_config, sizeof(g_config));
     block.checksum = config_checksum(&g_config);
 
-    // Pad to page size
-    uint8_t page[FLASH_PAGE_SIZE];
+    // Pad to sector size (config_flash_t exceeds one 256-byte page)
+    uint8_t page[FLASH_SECTOR_SIZE];
     memset(page, 0xFF, sizeof(page));
     memcpy(page, &block, sizeof(block));
 
     uint32_t ints = save_and_disable_interrupts();
     flash_range_erase(CONFIG_FLASH_OFFSET, FLASH_SECTOR_SIZE);
-    flash_range_program(CONFIG_FLASH_OFFSET, page, FLASH_PAGE_SIZE);
+    flash_range_program(CONFIG_FLASH_OFFSET, page, FLASH_SECTOR_SIZE);
     restore_interrupts(ints);
 
     return true;
 }
 
 const machine_config_t *config_get_all(void) {
+    return &g_config;
+}
+
+machine_config_t *config_get_mutable(void) {
     return &g_config;
 }
 
