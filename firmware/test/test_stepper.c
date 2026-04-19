@@ -39,11 +39,11 @@ TEST(test_enable_disable) {
     stepper_init();
 
     // Enable: active low → pin should go LOW
-    stepper_enable(true);
+    stepper_enable(AXIS_Z, true);
     assert(_mock_gpio_state[PIN_Z_ENABLE] == false);
 
     // Disable: pin should go HIGH
-    stepper_enable(false);
+    stepper_enable(AXIS_Z, false);
     assert(_mock_gpio_state[PIN_Z_ENABLE] == true);
 }
 
@@ -52,9 +52,9 @@ TEST(test_direction_forward) {
     config_load();
     stepper_init();
 
-    stepper_set_dir(true);
+    stepper_set_dir(AXIS_Z, true);
     assert(_mock_gpio_state[PIN_Z_DIR] == true);
-    assert(stepper_get_dir() == true);
+    assert(stepper_get_dir_z() == true);
 }
 
 TEST(test_direction_reverse) {
@@ -62,9 +62,9 @@ TEST(test_direction_reverse) {
     config_load();
     stepper_init();
 
-    stepper_set_dir(false);
+    stepper_set_dir(AXIS_Z, false);
     assert(_mock_gpio_state[PIN_Z_DIR] == false);
-    assert(stepper_get_dir() == false);
+    assert(stepper_get_dir_z() == false);
 }
 
 TEST(test_push_step_forward) {
@@ -72,7 +72,7 @@ TEST(test_push_step_forward) {
     config_load();
     stepper_init();
 
-    stepper_set_dir(true);
+    stepper_set_dir(AXIS_Z, true);
     for (int i = 0; i < 10; i++) {
         bool ok = stepper_push_step(1000);
         assert(ok);
@@ -85,7 +85,7 @@ TEST(test_push_step_reverse) {
     config_load();
     stepper_init();
 
-    stepper_set_dir(false);
+    stepper_set_dir(AXIS_Z, false);
     for (int i = 0; i < 5; i++) {
         bool ok = stepper_push_step(1000);
         assert(ok);
@@ -98,12 +98,12 @@ TEST(test_direction_change) {
     config_load();
     stepper_init();
 
-    stepper_set_dir(true);
+    stepper_set_dir(AXIS_Z, true);
     for (int i = 0; i < 5; i++) {
         stepper_push_step(1000);
     }
 
-    stepper_set_dir(false);
+    stepper_set_dir(AXIS_Z, false);
     for (int i = 0; i < 3; i++) {
         stepper_push_step(1000);
     }
@@ -132,11 +132,12 @@ TEST(test_stop_clears) {
 
     stepper_push_step(1000);
     stepper_push_step(2000);
-    assert(_mock_tx_fifo_count[0] == 2);
+    // stepper_init pushes one pulse-width word per axis; +2 steps = 3 total for Z SM
+    assert(_mock_tx_fifo_count[0] == 3);
 
-    stepper_stop();
-    // After stop, TX FIFO should be cleared
-    assert(_mock_tx_fifo_count[0] == 0);
+    stepper_stop(AXIS_Z);
+    // stop clears FIFO then reinjects pulse-width constant → 1 word remains
+    assert(_mock_tx_fifo_count[0] == 1);
 }
 
 TEST(test_zero_position) {
@@ -144,7 +145,7 @@ TEST(test_zero_position) {
     config_load();
     stepper_init();
 
-    stepper_set_dir(true);
+    stepper_set_dir(AXIS_Z, true);
     for (int i = 0; i < 7; i++) {
         stepper_push_step(1000);
     }
@@ -171,13 +172,9 @@ TEST(test_delay_60khz) {
     config_load();
     stepper_init();
 
-    // 60 kHz @ 133 MHz:
-    // total_cycles = 133000000 / 60000 = 2216
-    // pulse_cycles = 2.5 * 133 = 332
-    // delay = 2216 - 332 - 5 = 1879
+    // 60 kHz @ 125 MHz: 125000000 / 60000 = 2083
     uint32_t delay = stepper_delay_from_rate(60000.0f);
-    // Allow ±5 for float rounding
-    assert(delay >= 1874 && delay <= 1884);
+    assert(delay >= 2078 && delay <= 2088);
 }
 
 TEST(test_delay_1khz) {
@@ -185,12 +182,9 @@ TEST(test_delay_1khz) {
     config_load();
     stepper_init();
 
-    // 1 kHz @ 133 MHz:
-    // total_cycles = 133000000 / 1000 = 133000
-    // pulse_cycles = 332
-    // delay = 133000 - 332 - 5 = 132663
+    // 1 kHz @ 125 MHz: 125000000 / 1000 = 125000
     uint32_t delay = stepper_delay_from_rate(1000.0f);
-    assert(delay >= 132658 && delay <= 132668);
+    assert(delay >= 124995 && delay <= 125005);
 }
 
 TEST(test_delay_zero_rate) {
@@ -210,14 +204,15 @@ TEST(test_fifo_free_count) {
     config_load();
     stepper_init();
 
-    assert(stepper_fifo_free() == 4);
+    // init_axis pushes one pulse-width word; FIFO depth 4 → 3 free
+    assert(stepper_fifo_free(AXIS_Z) == 3);
 
     stepper_push_step(1000);
-    assert(stepper_fifo_free() == 3);
+    assert(stepper_fifo_free(AXIS_Z) == 2);
 
     stepper_push_step(1000);
     stepper_push_step(1000);
-    assert(stepper_fifo_free() == 1);
+    assert(stepper_fifo_free(AXIS_Z) == 0);
 }
 
 int main(void) {

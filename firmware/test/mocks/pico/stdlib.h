@@ -10,6 +10,17 @@
 // Pico SDK uses 'uint' throughout
 typedef unsigned int uint;
 
+// Flash placement attribute — no-op on host
+#ifndef __not_in_flash_func
+#define __not_in_flash_func(name) name
+#endif
+
+// Time (must be declared before use)
+extern uint64_t _mock_time_us;
+
+// time_us_32 wraps the 64-bit mock time
+static inline uint32_t time_us_32(void) { return (uint32_t)_mock_time_us; }
+
 // Stubs for Pico SDK functions used in firmware
 
 static inline void stdio_init_all(void) {}
@@ -39,8 +50,7 @@ static inline void gpio_set_irq_enabled_with_callback(uint gpio, uint32_t events
     (void)gpio; (void)events; (void)enabled; (void)cb;
 }
 
-// Time (defined in mock_flash.c)
-extern uint64_t _mock_time_us;
+// Time helpers
 static inline uint64_t time_us_64(void) { return _mock_time_us; }
 static inline void mock_set_time_us(uint64_t t) { _mock_time_us = t; }
 

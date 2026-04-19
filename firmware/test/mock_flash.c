@@ -3,14 +3,14 @@
 #include <stdbool.h>
 #include <string.h>
 
-// Mock flash
+// Mock flash (two sectors so CONFIG_FLASH_OFFSET = FLASH_SECTOR_SIZE is non-zero)
 #define FLASH_SECTOR_SIZE 4096
-uint8_t _mock_flash[FLASH_SECTOR_SIZE];
+uint8_t _mock_flash[2 * FLASH_SECTOR_SIZE];
 bool _mock_flash_initialized = false;
 
 void _mock_flash_ensure_init(void) {
     if (!_mock_flash_initialized) {
-        memset(_mock_flash, 0xFF, sizeof(_mock_flash));
+        memset(_mock_flash, 0xFF, 2 * FLASH_SECTOR_SIZE);
         _mock_flash_initialized = true;
     }
 }
